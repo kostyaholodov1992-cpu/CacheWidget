@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Cache Cleaner</string>
+    <string name="app_name">Очистка кэша</string>
     <string name="widget_title">Очистить кэш</string>
     <string name="service_desc">Сервис очищает кэш приложений по нажатию на виджет</string>
     <string name="main_text">1. Нажмите кнопку ниже и включите «Cache Cleaner» в списке сервисов доступности.\n\n2. На Samsung (Android 13+) сервис может не включаться сразу. Тогда: Настройки → Приложения → Cache Cleaner → меню ⋮ → «Разрешить ограниченные настройки» → вернитесь и включите сервис.\n\n3. Добавьте виджет на рабочий стол: удерживайте палец на пустом месте → Виджеты → Cache Cleaner.\n\nВо время очистки не трогайте телефон: приложение само листает настройки.</string>
