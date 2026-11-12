@@ -21,7 +21,13 @@ class ClearCacheAccessibilityService : AccessibilityService() {
     }
 
     private fun clickClearCache() {
-        val button = findAccessibilityNodeInfosByText("Очистить кэш")
+        val root = rootInActiveWindow
+        if (root == null) {
+            showToast("Экран не найден")
+            return
+        }
+
+        val button = root.findAccessibilityNodeInfosByText("Очистить кэш")
             .firstOrNull {
                 it.className != null &&
                     it.className.toString().contains("Button", ignoreCase = true)
@@ -31,7 +37,7 @@ class ClearCacheAccessibilityService : AccessibilityService() {
             button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             showToast("Нажал «Очистить кэш»")
         } else {
-            val fallback = findAccessibilityNodeInfosByText("Очистить")
+            val fallback = root.findAccessibilityNodeInfosByText("Очистить")
                 .firstOrNull { it.isClickable }
             if (fallback != null) {
                 fallback.performAction(AccessibilityNodeInfo.ACTION_CLICK)
