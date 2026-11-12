@@ -30,7 +30,7 @@ jobs:
         run: echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
 
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon 2>&1 | grep -E "^e:|What went wrong|FAILURE|BUILD" -A 3
+        run: gradle assembleDebug --no-daemon 2>&1 | grep -v -E "^\s+at (org|java)\." | tail -100
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
 
