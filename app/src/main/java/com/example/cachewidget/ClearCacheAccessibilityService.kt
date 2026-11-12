@@ -28,10 +28,9 @@ class ClearCacheAccessibilityService : AccessibilityService() {
     }
 
     private fun tryClick(attempt: Int) {
-        // 20 попыток по 500 мс = до 10 секунд ожидания нужного экрана
         if (attempt > 20) {
             searching = false
-            showToast("Кнопка не найдена")
+            showToast(diagnose())
             return
         }
 
@@ -41,9 +40,7 @@ class ClearCacheAccessibilityService : AccessibilityService() {
             return
         }
 
-        // проверяем, что мы именно на экране «Хранилище» (там есть строка «Кэш»)
-        val onStorageScreen = root.findAccessibilityNodeInfosByText("Кэш").isNotEmpty()
-        if (!onStorageScreen) {
+        if (root.findAccessibilityNodeInfosByText("Кэш").isEmpty()) {
             retry(attempt)
             return
         }
@@ -51,14 +48,7 @@ class ClearCacheAccessibilityService : AccessibilityService() {
         val node = root.findAccessibilityNodeInfosByText("Очистить кэш").firstOrNull()
             ?: root.findAccessibilityNodeInfosByText("Очистить").firstOrNull()
 
-        if (node == null) {
-            retry(attempt)
-            return
-        }
-
-        // текст может лежать в надписи внутри кликабельного контейнера —
-        // кликаем по первому кликабельному родителю
-        val target = if (node.isClickable) node else findClickableParent(node)
+        val target = node?.let { if (it.isClickable) it else findClickableParent(it) }
 
         if (target != null) {
             target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
@@ -67,6 +57,23 @@ class ClearCacheAccessibilityService : AccessibilityService() {
         } else {
             retry(attempt)
         }
+    }
+
+    // Диагностика: какой пакет на экране и какие первые тексты видит сервис
+    private fun diagnose(): String {
+        val root = rootInActiveWindow
+            ?: return "DIAG: экран не виден (root=null)"
+        val sb = StringBuilder("DIAG pkg=").append(root.packageName).append("; тексты: ")
+        val texts = mutableListOf<String>()
+        collectTexts(root, texts, 0)
+        sb.append(if (texts.isEmpty()) "пусто" else texts.joinToString(" | "))
+        return sb.toString()
+    }
+
+    private fun collectTexts(node: AccessibilityNodeInfo?, out: MutableList<String>, depth: Int) {
+        if (node == null || out.size >= 5 || depth > 6) return
+        node.text?.let { if (it.isNotBlank()) out.add(it.toString()) }
+        for (i in 0 until node.childCount) collectTexts(node.getChild(i), out, depth + 1)
     }
 
     private fun retry(attempt: Int) {
