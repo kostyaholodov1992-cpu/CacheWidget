@@ -14,25 +14,26 @@ class CacheAccessibilityService : AccessibilityService() {
         if (event.packageName != "com.android.settings") return
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
-        // ждём, пока панель с кнопками отрисуется (One UI — до 2 секунд)
-        Thread.sleep(2000)
+      // ждём, пока панель с кнопками отрисуется (One UI — до 2 секунд)
+Thread.sleep(2000)
 
-        // ищем кнопку «Очистить кэш» по тексту
-        val cleanCacheBtn = findAccessibilityNodeInfosByText("Очистить кэш")
-            .firstOrNull { it.className?.contains("Button", ignoreCase = true) == true }
+// ищем кнопку «Очистить кэш» по тексту
+val cleanCacheBtn = findAccessibilityNodeInfosByText("Очистить кэш")
+    .firstOrNull { it.className?.toString()?.contains("Button", ignoreCase = true) == true }
 
-        if (cleanCacheBtn != null) {
-            cleanCacheBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            Toast.makeText(this, "Нажал «Очистить кэш»", Toast.LENGTH_SHORT).show()
-        } else {
-            // запасной вариант: ищем по части текста
-            val fallback = findAccessibilityNodeInfosByText("Очистить")
-                .firstOrNull { it.isClickable }
-            if (fallback != null) {
-                fallback.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            } else {
-                Toast.makeText(this, "Кнопка не найдена", Toast.LENGTH_SHORT).show()
-            }
+if (cleanCacheBtn != null) {
+    cleanCacheBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    Toast.makeText(this, "Нажал «Очистить кэш»", Toast.LENGTH_SHORT).show()
+} else {
+    // запасной вариант: ищем по части текста
+    val fallback = findAccessibilityNodeInfosByText("Очистить")
+        .firstOrNull { it.isClickable }
+    if (fallback != null) {
+        fallback.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    } else {
+        Toast.makeText(this, "Кнопка не найдена", Toast.LENGTH_SHORT).show()
+    }
+}
         }
     }
 
