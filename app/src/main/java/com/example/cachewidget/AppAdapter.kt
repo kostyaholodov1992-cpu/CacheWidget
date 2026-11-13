@@ -9,7 +9,8 @@ import androidx.recyclerview.widget.RecyclerView
 
 class AppAdapter(
     private val items: List<AppInfo>,
-    private val onClick: (AppInfo) -> Unit
+    private val onAppClick: (AppInfo) -> Unit,
+    private val onHeaderClick: (AppInfo) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -42,12 +43,15 @@ class AppAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = items[position]
         when (holder) {
-            is HeaderViewHolder -> holder.title.text = item.name
+            is HeaderViewHolder -> {
+                holder.title.text = item.name
+                holder.itemView.setOnClickListener { onHeaderClick(item) }
+            }
             is AppViewHolder -> {
                 holder.icon.setImageDrawable(item.icon)
                 holder.name.text = item.name
                 holder.cache.text = formatSize(item.cacheBytes)
-                holder.itemView.setOnClickListener { onClick(item) }
+                holder.itemView.setOnClickListener { onAppClick(item) }
             }
         }
     }
