@@ -8,12 +8,14 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.app.AppOpsManager
+import android.content.Context
+import android.os.Process
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -53,18 +55,36 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         }
+    }
 
-        // Запрос разрешения на подсчёт кэша (спец. доступ «Доступ к данным об использовании»)
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.PACKAGE_USAGE_STATS)
-            != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.PACKAGE_USAGE_STATS), 1
+    private fun hasUsageAccess(): Boolean {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(), packageName
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(), packageName
             )
         }
+        return mode == AppOpsManager.MODE_ALLOWED
     }
 
     private fun scanApps() {
         val status = findViewById<TextView>(R.id.tv_status)
+
+        // Нет права «Доступ к данным об использовании» — ведём на экран настроек
+        if (!hasUsageAccess()) {
+            status.text = "Включите «Доступ к данным об использовании»"
+            Toast.makeText(this, "Разрешите приложению доступ к данным об использовании", Toast.LENGTH_LONG).show()
+            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            return
+        }
+
         status.text = "Сканирую..."
 
         apps.clear()
