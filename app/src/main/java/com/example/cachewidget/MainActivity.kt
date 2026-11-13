@@ -21,6 +21,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -247,17 +248,18 @@ class MainActivity : AppCompatActivity() {
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             type,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT
         )
-        params.gravity = Gravity.BOTTOM
+        params.gravity = Gravity.CENTER
 
         val progressText = TextView(this).apply {
-            textSize = 14f
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(32, 24, 16, 24)
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setPadding(0, 32, 0, 0)
         }
 
         val stopButton = Button(this).apply {
@@ -266,11 +268,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         overlayView = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(0xEEFFFFFF.toInt())
-            addView(progressText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(0xF2FFFFFF.toInt())
+            addView(ProgressBar(this@MainActivity))
+            addView(progressText)
             addView(stopButton)
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
         }
         overlayText = progressText
 
@@ -279,7 +286,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             overlayView = null
             overlayText = null
-            Toast.makeText(this, "Не удалось показать полоску прогресса: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Не удалось показать шторку: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
