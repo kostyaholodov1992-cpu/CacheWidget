@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="#2C2C2C"> <!-- Простой темный фон, чтобы не было ошибок, если нет drawable -->
+    android:background="#2C2C2C">
 
     <TextView
         android:id="@+id/widget_text"
