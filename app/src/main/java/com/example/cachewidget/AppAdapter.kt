@@ -1,50 +1,62 @@
 package com.example.cachewidget
 
+import android.graphics.Typeface
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-data class AppInfo(val name: String, val packageName: String, val cacheBytes: Long)
-
 class AppAdapter(
-    private val apps: MutableList<AppInfo>,
+    private val items: List<AppInfo>,
     private val onClick: (AppInfo) -> Unit
-) : RecyclerView.Adapter<AppAdapter.Holder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    class Holder(view: android.view.View) : RecyclerView.ViewHolder(view) {
-        val icon: ImageView = view.findViewById(R.id.img_icon)
-        val name: TextView = view.findViewById(R.id.tv_name)
-        val cache: TextView = view.findViewById(R.id.tv_cache)
+    companion object {
+        private const val TYPE_HEADER = 0
+        private const val TYPE_APP = 1
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        val v = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_app, parent, false)
-        return Holder(v)
+    class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val title: TextView = view.findViewById(android.R.id.text1)
     }
 
-    override fun onBindViewHolder(h: Holder, position: Int) {
-        val app = apps[position]
-        h.name.text = app.name
-        h.cache.text = if (app.cacheBytes > 0) "Кэш: ${formatBytes(app.cacheBytes)}" else "Кэш: —"
-        try {
-            h.icon.setImageDrawable(h.itemView.context.packageManager.getApplicationIcon(app.packageName))
-        } catch (_: Exception) { }
-
-        h.itemView.setOnClickListener { onClick(app) }
+    class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val name: TextView = view.findViewById(android.R.id.text1)
+        val cache: TextView = view.findViewById(android.R.id.text2)
     }
 
-    override fun getItemCount() = apps.size
+    override fun getItemViewType(position: Int) =
+        if (items[position].isHeader) TYPE_HEADER else TYPE_APP
 
-    private fun formatBytes(bytes: Long): String {
-        val units = arrayOf("Б", "КБ", "МБ", "ГБ")
-        var value = bytes.toDouble()
-        var idx = 0
-        while (value >= 1024 && idx < units.size - 1) {
-            value /= 1024; idx++
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == TYPE_HEADER) {
+            HeaderViewHolder(inflater.inflate(android.R.layout.simple_list_item_1, parent, false))
+        } else {
+            AppViewHolder(inflater.inflate(android.R.layout.two_line_list_item, parent, false))
         }
-        return String.format("%.1f %s", value, units[idx])
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        val item = items[position]
+        when (holder) {
+            is HeaderViewHolder -> {
+                holder.title.text = item.name
+                holder.title.setTypeface(null, Typeface.BOLD)
+            }
+            is AppViewHolder -> {
+                holder.name.text = item.name
+                holder.cache.text = formatSize(item.cacheBytes)
+                holder.itemView.setOnClickListener { onClick(item) }
+            }
+        }
+    }
+
+    override fun getItemCount() = items.size
+
+    private fun formatSize(bytes: Long): String {
+        val mb = bytes / 1024.0 / 1024.0
+        return if (mb >= 100) "${mb.toInt()} МБ" else String.format("%.1f МБ", mb)
     }
 }
