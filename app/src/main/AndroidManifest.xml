@@ -11,7 +11,7 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="CacheWidget"
+        android:label="@string/Очистить кэш"
         android:theme="@style/Theme.AppCompat.Light">
 
         <activity
@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name=".ClearCacheAccessibilityService"
+            android:name="@string/Очистить кэш"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
             <intent-filter>
