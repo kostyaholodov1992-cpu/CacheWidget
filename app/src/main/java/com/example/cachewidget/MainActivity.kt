@@ -33,6 +33,13 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: AppAdapter
     private val apps = mutableListOf<AppInfo>()
+
+    private val userAppsCache = mutableListOf<AppInfo>()
+    private val systemAppsCache = mutableListOf<AppInfo>()
+
+    private var showUser = true
+    private var showSystem = true
+
     private var clearList = listOf<AppInfo>()
 
     private var clearIndex = 0
@@ -79,6 +86,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btn_clear).setOnClickListener { startClearing() }
+
+        findViewById<TextView>(R.id.tv_header_user).setOnClickListener {
+            showUser = !showUser
+            refreshDisplay()
+        }
+
+        findViewById<TextView>(R.id.tv_header_system).setOnClickListener {
+            showSystem = !showSystem
+            refreshDisplay()
+        }
 
         ContextCompat.registerReceiver(
             this, nextReceiver,
@@ -127,73 +144,91 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun scanApps() {
-    val status = findViewById<TextView>(R.id.tv_status)
+        val status = findViewById<TextView>(R.id.tv_status)
 
-    if (!hasUsageAccess()) {
-        status.text = "Включите «Доступ к данным об использовании»"
-        Toast.makeText(this, "Разрешите приложению доступ к данным об использовании", Toast.LENGTH_LONG).show()
-        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-        return
-    }
-
-    status.text = "Сканирую..."
-
-    val userApps = mutableListOf<AppInfo>()
-    val systemApps = mutableListOf<AppInfo>()
-
-    // Пакеты, которые хотим принудительно считать пользовательскими
-    val forceUserPackages = setOf(
-        "com.android.chrome",          // Chrome
-        "com.google.android.apps.photos", // Google Фото
-        "com.google.android.youtube"      // YouTube
-    )
-
-    val pm = packageManager
-    val installed = pm.getInstalledApplications(0)
-
-    for (info in installed) {
-        val name = try { pm.getApplicationLabel(info).toString() } catch (_: Exception) { info.packageName }
-        val icon = try { pm.getApplicationIcon(info) } catch (_: Exception) { null }
-
-        val cache = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                val ssm = getSystemService(StorageStatsManager::class.java)
-                val stats = ssm.queryStatsForUid(info.storageUuid, info.uid)
-                stats.cacheBytes
-            } catch (_: Exception) { 0L }
-        } else 0L
-
-        val item = AppInfo(name, info.packageName, cache, icon = icon)
-
-        // Если пакет в списке исключений — сразу в userApps
-        if (forceUserPackages.contains(info.packageName)) {
-            userApps.add(item)
-            continue
+        if (!hasUsageAccess()) {
+            status.text = "Включите «Доступ к данным об использовании»"
+            Toast.makeText(this, "Разрешите приложению доступ к данным об использовании", Toast.LENGTH_LONG).show()
+            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            return
         }
 
-        // Иначе — по флагу FLAG_SYSTEM
-        if (info.flags and ApplicationInfo.FLAG_SYSTEM == 0) {
-            userApps.add(item)
-        } else {
-            systemApps.add(item)
+        status.text = "Сканирую..."
+
+        val forceUserPackages = setOf(
+            "com.android.chrome",              // Chrome
+            "com.google.android.apps.photos",  // Google Фото
+            "com.google.android.youtube"       // YouTube
+        )
+
+        userAppsCache.clear()
+        systemAppsCache.clear()
+
+        val pm = packageManager
+        val installed = pm.getInstalledApplications(0)
+
+        for (info in installed) {
+            val name = try { pm.getApplicationLabel(info).toString() } catch (_: Exception) { info.packageName }
+            val icon = try { pm.getApplicationIcon(info) } catch (_: Exception) { null }
+
+            val cache = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    val ssm = getSystemService(StorageStatsManager::class.java)
+                    val stats = ssm.queryStatsForUid(info.storageUuid, info.uid)
+                    stats.cacheBytes
+                } catch (_: Exception) { 0L }
+            } else 0L
+
+            val item = AppInfo(name, info.packageName, cache, icon = icon)
+
+            if (forceUserPackages.contains(info.packageName)) {
+                userAppsCache.add(item)
+                continue
+            }
+
+            if (info.flags and ApplicationInfo.FLAG_SYSTEM == 0) {
+                userAppsCache.add(item)
+            } else {
+                systemAppsCache.add(item)
+            }
         }
+
+        userAppsCache.sortByDescending { it.cacheBytes }
+        systemAppsCache.sortByDescending { it.cacheBytes }
+
+        clearList = userAppsCache + systemAppsCache
+
+        findViewById<TextView>(R.id.tv_header_user).visibility = android.view.View.VISIBLE
+        findViewById<TextView>(R.id.tv_header_system).visibility = android.view.View.VISIBLE
+
+        refreshDisplay()
+
+        val withCache = clearList.count { it.cacheBytes > 0 }
+        status.text = "Найдено приложений: ${clearList.size} (установленных ${userAppsCache.size}, системных ${systemAppsCache.size}). С кэшем: $withCache"
     }
 
-    userApps.sortByDescending { it.cacheBytes }
-    systemApps.sortByDescending { it.cacheBytes }
+    private fun refreshDisplay() {
+        apps.clear()
+        if (showUser) apps.addAll(userAppsCache)
+        if (showSystem) apps.addAll(systemAppsCache)
+        adapter.notifyDataSetChanged()
+        updateHeaderTitles()
+    }
 
-    apps.clear()
-    apps.add(AppInfo("Установленные", "", 0, isHeader = true))
-    apps.addAll(userApps)
-    apps.add(AppInfo("Системные", "", 0, isHeader = true))
-    apps.addAll(systemApps)
+    private fun updateHeaderTitles() {
+        val hUser = findViewById<TextView>(R.id.tv_header_user)
+        val hSystem = findViewById<TextView>(R.id.tv_header_system)
 
-    clearList = userApps + systemApps
+        hUser.text = if (showUser)
+            "Установленные (${userAppsCache.size})  ▾"
+        else
+            "Установленные (${userAppsCache.size})  ▸"
 
-    adapter.notifyDataSetChanged()
-    val withCache = clearList.count { it.cacheBytes > 0 }
-    status.text = "Найдено приложений: ${clearList.size} (установленных ${userApps.size}, системных ${systemApps.size}). С кэшем: $withCache"
-}
+        hSystem.text = if (showSystem)
+            "Системные (${systemAppsCache.size})  ▾"
+        else
+            "Системные (${systemAppsCache.size})  ▸"
+    }
 
     private fun startClearing() {
         val status = findViewById<TextView>(R.id.tv_status)
