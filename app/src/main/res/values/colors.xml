@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="screen_bg">#FFFFFF</color>
+    <!-- Фон экрана: светло‑серый для светлой темы -->
+    <color name="screen_bg">#F5F5F5</color>
+
+    <!-- Основной текст (тёмный для контраста на светлом фоне) -->
     <color name="text_primary">#212121</color>
-    <color name="status_text">#666666</color>
-    <color name="header_text">#1A73E8</color>
-    <color name="header_bg">#EEEEEE</color>
-    <color name="overlay_bg">#F2FFFFFF</color>
-    <color name="ic_launcher_background">#2196F3</color>
+
+    <!-- Второстепенный текст (статус, подписи) -->
+    <color name="status_text">#757575</color>
+
+    <!-- Цвет фона заголовка группы -->
+    <color name="header_bg">#E0E0E0</color>
+
+    <!-- Цвет текста заголовка группы -->
+    <color name="header_text">#000000</color>
+
+    <!-- Цвет кнопок (опционально, можно оставить стандартный) -->
+    <color name="button_bg">#FFFFFF</color>
+    <color name="button_text">#212121</color>
 </resources>
