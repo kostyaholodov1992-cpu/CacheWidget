@@ -32,8 +32,8 @@ import androidx.recyclerview.widget.RecyclerView
 class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: AppAdapter
-    private val apps = mutableListOf<AppInfo>()      // то, что показываем на экране (с заголовками)
-    private var clearList = listOf<AppInfo>()        // то, что чистим (без заголовков)
+    private val apps = mutableListOf<AppInfo>()
+    private var clearList = listOf<AppInfo>()
 
     private var clearIndex = 0
     private var token = 0
@@ -87,7 +87,6 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    // Если пользователь вернулся с экрана разрешений с включённым тумблером — стартуем сами
     override fun onResume() {
         super.onResume()
         if (pendingClear && Settings.canDrawOverlays(this)) {
@@ -149,6 +148,7 @@ class MainActivity : AppCompatActivity() {
 
         for (info in installed) {
             val name = try { pm.getApplicationLabel(info).toString() } catch (_: Exception) { info.packageName }
+            val icon = try { pm.getApplicationIcon(info) } catch (_: Exception) { null }
             val cache = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 try {
                     val ssm = getSystemService(StorageStatsManager::class.java)
@@ -157,13 +157,11 @@ class MainActivity : AppCompatActivity() {
                 } catch (_: Exception) { 0L }
             } else 0L
 
-            if (cache >= 1L * 1024 * 1024) {
-                val item = AppInfo(name, info.packageName, cache)
-                if (info.flags and ApplicationInfo.FLAG_SYSTEM == 0) {
-                    userApps.add(item)
-                } else {
-                    systemApps.add(item)
-                }
+            val item = AppInfo(name, info.packageName, cache, icon = icon)
+            if (info.flags and ApplicationInfo.FLAG_SYSTEM == 0) {
+                userApps.add(item)
+            } else {
+                systemApps.add(item)
             }
         }
 
@@ -171,19 +169,15 @@ class MainActivity : AppCompatActivity() {
         systemApps.sortByDescending { it.cacheBytes }
 
         apps.clear()
-        if (userApps.isNotEmpty()) {
-            apps.add(AppInfo("Установленные", "", 0, isHeader = true))
-            apps.addAll(userApps)
-        }
-        if (systemApps.isNotEmpty()) {
-            apps.add(AppInfo("Системные", "", 0, isHeader = true))
-            apps.addAll(systemApps)
-        }
+        apps.add(AppInfo("Установленные", "", 0, isHeader = true))
+        apps.addAll(userApps)
+        apps.add(AppInfo("Системные", "", 0, isHeader = true))
+        apps.addAll(systemApps)
 
         clearList = userApps + systemApps
 
         adapter.notifyDataSetChanged()
-        status.text = "С кэшем: ${clearList.size} (установленных ${userApps.size}, системных ${systemApps.size})"
+        status.text = "Найдено приложений: ${clearList.size} (установленных ${userApps.size}, системных ${systemApps.size})"
     }
 
     private fun startClearing() {
@@ -289,7 +283,6 @@ class MainActivity : AppCompatActivity() {
         val app = clearList[clearIndex]
         ClearCacheAccessibilityService.currentTask = "storage"
 
-        // Если за 8 секунд ничего не произошло — пропускаем приложение
         handler.postDelayed({
             if (current == token && current != advancedToken) advance()
         }, 8000)
