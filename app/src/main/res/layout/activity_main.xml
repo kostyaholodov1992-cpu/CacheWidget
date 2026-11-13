@@ -18,19 +18,26 @@
         android:id="@+id/btn_scan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Сканировать" />
+        android:text="Сканировать"
+        android:textColor="@color/text_primary"
+        android:backgroundTint="@color/button_bg" />
 
     <Button
         android:id="@+id/btn_clear"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Очистить кэш" />
+        android:text="Очистить кэш"
+        android:textColor="@color/text_primary"
+        android:backgroundTint="@color/button_bg" />
 
     <Button
         android:id="@+id/btn_permission"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Открыть настройки доступности" />
+        android:text="Открыть настройки доступности"
+        android:textColor="@color/text_primary"
+        android:backgroundTint="@color/button_bg" />
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_apps"
