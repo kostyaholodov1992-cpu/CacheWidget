@@ -3,13 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@color/screen_bg">
 
     <TextView
         android:id="@+id/tv_status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="14sp"
+        android:textColor="@color/status_text"
         android:paddingBottom="8dp" />
 
     <Button
@@ -22,17 +24,4 @@
         android:id="@+id/btn_clear"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Очистить кэш" />
-
-    <Button
-        android:id="@+id/btn_permission"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Открыть настройки доступности" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_apps"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-</LinearLayout>
+        android:text="Очистить
