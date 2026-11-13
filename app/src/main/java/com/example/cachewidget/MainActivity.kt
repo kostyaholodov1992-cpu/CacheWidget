@@ -21,7 +21,6 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -97,10 +96,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        stopClearing(silent = true)
         try { unregisterReceiver(nextReceiver) } catch (_: Exception) {}
-        hideOverlay()
-        ClearCacheAccessibilityService.isRunning = false
-        ClearCacheAccessibilityService.currentTask = null
         super.onDestroy()
     }
 
@@ -177,7 +174,8 @@ class MainActivity : AppCompatActivity() {
         clearList = userApps + systemApps
 
         adapter.notifyDataSetChanged()
-        status.text = "Найдено приложений: ${clearList.size} (установленных ${userApps.size}, системных ${systemApps.size})"
+        val withCache = clearList.count { it.cacheBytes > 0 }
+        status.text = "Найдено приложений: ${clearList.size} (установленных ${userApps.size}, системных ${systemApps.size}). С кэшем: $withCache"
     }
 
     private fun startClearing() {
@@ -191,6 +189,13 @@ class MainActivity : AppCompatActivity() {
         }
         if (clearList.isEmpty()) {
             status.text = "Сначала нажмите «Сканировать»"
+            return
+        }
+
+        // Чистим только то, у чего кэш реально есть
+        clearList = clearList.filter { it.cacheBytes > 0 }
+        if (clearList.isEmpty()) {
+            status.text = "Кэш не найден ни в одном приложении"
             return
         }
 
@@ -219,6 +224,19 @@ class MainActivity : AppCompatActivity() {
         openNextApp()
     }
 
+    private fun stopClearing(silent: Boolean = false) {
+        handler.removeCallbacksAndMessages(null)
+        token++
+        ClearCacheAccessibilityService.isRunning = false
+        ClearCacheAccessibilityService.currentTask = null
+        pendingClear = false
+        hideOverlay()
+        if (!silent) {
+            findViewById<TextView>(R.id.tv_status).text = "Очистка остановлена"
+            Toast.makeText(this, "Очистка остановлена", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun showOverlay() {
         if (overlayView != null) return
 
@@ -229,30 +247,30 @@ class MainActivity : AppCompatActivity() {
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             type,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
-        params.gravity = Gravity.CENTER
+        params.gravity = Gravity.BOTTOM
 
         val text = TextView(this).apply {
-            textSize = 16f
-            setPadding(0, 48, 0, 0)
-            gravity = Gravity.CENTER
+            textSize = 14f
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(32, 24, 16, 24)
+        }
+
+        val stopButton = Button(this).apply {
+            text = "Стоп"
+            setOnClickListener { stopClearing() }
         }
 
         overlayView = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setBackgroundColor(0xF2FFFFFF.toInt())
-            addView(ProgressBar(this@MainActivity))
-            addView(text)
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(0xEEFFFFFF.toInt())
+            addView(text, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(stopButton)
         }
         overlayText = text
 
@@ -261,7 +279,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             overlayView = null
             overlayText = null
-            Toast.makeText(this, "Не удалось показать шторку: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Не удалось показать полоску прогресса: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -293,14 +311,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun advance() {
+        if (!ClearCacheAccessibilityService.isRunning) return
         if (token == advancedToken) return
         advancedToken = token
         clearIndex++
 
         if (clearIndex >= clearList.size) {
-            ClearCacheAccessibilityService.isRunning = false
-            hideOverlay()
-            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: ${clearList.size}"
+            val cleaned = clearList.size
+            stopClearing(silent = true)
+            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: $cleaned"
             Toast.makeText(this, "Кэш очищен, обновляю список", Toast.LENGTH_LONG).show()
             scanApps()
         } else {
