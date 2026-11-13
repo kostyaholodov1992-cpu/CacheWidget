@@ -101,13 +101,16 @@ class MainActivity : AppCompatActivity() {
                 } catch (_: Exception) { 0L }
             } else 0L
 
-            apps.add(AppInfo(name, info.packageName, cache))
+            // Показываем только приложения с реальным кэшем (от 1 МБ)
+            if (cache >= 1L * 1024 * 1024) {
+                apps.add(AppInfo(name, info.packageName, cache))
+            }
         }
 
         // Сортируем: сначала приложения с большим кэшем
         apps.sortByDescending { it.cacheBytes }
 
         adapter.notifyDataSetChanged()
-        status.text = "Найдено приложений: ${apps.size}"
+        status.text = "Приложений с кэшем: ${apps.size}"
     }
 }
