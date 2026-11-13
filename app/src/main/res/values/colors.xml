@@ -1,10 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="screen_bg">#F5F5F5</color>
-    <color name="text_primary">#212121</color>
+    <color name="text_primary">#212121</color>   
     <color name="status_text">#757575</color>
     <color name="header_bg">#E0E0E0</color>
     <color name="header_text">#000000</color>
-    <color name="button_bg">#FFFFFF</color>
     <color name="ic_launcher_background">#2196F3</color>
 </resources>
