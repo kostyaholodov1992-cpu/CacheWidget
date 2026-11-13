@@ -1,17 +1,18 @@
 package com.example.cachewidget
 
-import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.app.AppOpsManager
-import android.content.Context
 import android.os.Process
-import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -21,19 +22,28 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.os.Build
 import android.app.usage.StorageStatsManager
-import android.os.storage.StorageManager
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: AppAdapter
     private val apps = mutableListOf<AppInfo>()
 
+    private var clearIndex = 0
+    private var token = 0
+    private var advancedToken = -1
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val nextReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == ClearCacheAccessibilityService.ACTION_CLEAR_NEXT) advance()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         adapter = AppAdapter(apps) { app ->
-            // Открываем страницу приложения — служба сама нажмёт «Хранилище» и «Очистить кэш»
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 .setData(Uri.parse("package:${app.packageName}"))
             startActivity(intent)
@@ -55,6 +65,21 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         }
+
+        findViewById<Button>(R.id.btn_clear).setOnClickListener { startClearing() }
+
+        ContextCompat.registerReceiver(
+            this, nextReceiver,
+            IntentFilter(ClearCacheAccessibilityService.ACTION_CLEAR_NEXT),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    override fun onDestroy() {
+        try { unregisterReceiver(nextReceiver) } catch (_: Exception) {}
+        ClearCacheAccessibilityService.isRunning = false
+        ClearCacheAccessibilityService.currentTask = null
+        super.onDestroy()
     }
 
     private fun hasUsageAccess(): Boolean {
@@ -74,10 +99,16 @@ class MainActivity : AppCompatActivity() {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
+    private fun isAccessibilityEnabled(): Boolean {
+        val setting = Settings.Secure.getString(
+            contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        return setting.contains("$packageName/${ClearCacheAccessibilityService::class.java.name}")
+    }
+
     private fun scanApps() {
         val status = findViewById<TextView>(R.id.tv_status)
 
-        // Нет права «Доступ к данным об использовании» — ведём на экран настроек
         if (!hasUsageAccess()) {
             status.text = "Включите «Доступ к данным об использовании»"
             Toast.makeText(this, "Разрешите приложению доступ к данным об использовании", Toast.LENGTH_LONG).show()
@@ -101,16 +132,69 @@ class MainActivity : AppCompatActivity() {
                 } catch (_: Exception) { 0L }
             } else 0L
 
-            // Показываем только приложения с реальным кэшем (от 1 МБ)
             if (cache >= 1L * 1024 * 1024) {
                 apps.add(AppInfo(name, info.packageName, cache))
             }
         }
 
-        // Сортируем: сначала приложения с большим кэшем
         apps.sortByDescending { it.cacheBytes }
 
         adapter.notifyDataSetChanged()
         status.text = "Приложений с кэшем: ${apps.size}"
+    }
+
+    private fun startClearing() {
+        val status = findViewById<TextView>(R.id.tv_status)
+
+        if (!isAccessibilityEnabled()) {
+            status.text = "Включите службу специальных возможностей"
+            Toast.makeText(this, "Сначала включите службу в настройках", Toast.LENGTH_LONG).show()
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            return
+        }
+        if (apps.isEmpty()) {
+            status.text = "Сначала нажмите «Сканировать»"
+            return
+        }
+
+        clearIndex = 0
+        token = 0
+        advancedToken = -1
+        ClearCacheAccessibilityService.isRunning = true
+        status.text = "Чищу 1 из ${apps.size}: ${apps[0].name}"
+        openNextApp()
+    }
+
+    private fun openNextApp() {
+        token++
+        val current = token
+        val app = apps[clearIndex]
+        ClearCacheAccessibilityService.currentTask = "storage"
+
+        // Если за 8 секунд ничего не произошло — пропускаем приложение
+        handler.postDelayed({
+            if (current == token && current != advancedToken) advance()
+        }, 8000)
+
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(Uri.parse("package:${app.packageName}"))
+        startActivity(intent)
+    }
+
+    private fun advance() {
+        if (token != advancedToken) {
+            advancedToken = token
+            clearIndex++
+            val status = findViewById<TextView>(R.id.tv_status)
+            if (clearIndex >= apps.size) {
+                ClearCacheAccessibilityService.isRunning = false
+                status.text = "Готово! Очищено приложений: ${apps.size}"
+                Toast.makeText(this, "Кэш очищен, обновляю список", Toast.LENGTH_LONG).show()
+                scanApps()
+            } else {
+                status.text = "Чищу ${clearIndex + 1} из ${apps.size}: ${apps[clearIndex].name}"
+                openNextApp()
+            }
+        }
     }
 }
