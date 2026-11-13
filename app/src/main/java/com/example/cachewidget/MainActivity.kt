@@ -31,4 +31,64 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         adapter = AppAdapter(apps) { app ->
-            // Открываем страницу приложения — служба сама нажмёт «Хранилище»
+            // Открываем страницу приложения — служба сама нажмёт «Хранилище» и «Очистить кэш»
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.parse("package:${app.packageName}"))
+            startActivity(intent)
+        }
+
+        val recycler = findViewById<RecyclerView>(R.id.recycler_apps)
+        recycler.layoutManager = LinearLayoutManager(this)
+        recycler.adapter = adapter
+
+        findViewById<Button>(R.id.btn_scan).setOnClickListener { scanApps() }
+
+        findViewById<Button>(R.id.btn_permission).setOnClickListener {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                putExtra(
+                    Intent.EXTRA_COMPONENT_NAME,
+                    ComponentName(packageName, ClearCacheAccessibilityService::class.java.name)
+                )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        }
+
+        // Запрос разрешения на подсчёт кэша (спец. доступ «Доступ к данным об использовании»)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.PACKAGE_USAGE_STATS)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.PACKAGE_USAGE_STATS), 1
+            )
+        }
+    }
+
+    private fun scanApps() {
+        val status = findViewById<TextView>(R.id.tv_status)
+        status.text = "Сканирую..."
+
+        apps.clear()
+        val pm = packageManager
+        val installed = pm.getInstalledApplications(0)
+            .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 }
+
+        for (info in installed) {
+            val name = try { pm.getApplicationLabel(info).toString() } catch (_: Exception) { info.packageName }
+            val cache = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    val ssm = getSystemService(StorageStatsManager::class.java)
+                    val stats = ssm.queryStatsForUid(info.storageUuid, info.uid)
+                    stats.cacheBytes
+                } catch (_: Exception) { 0L }
+            } else 0L
+
+            apps.add(AppInfo(name, info.packageName, cache))
+        }
+
+        // Сортируем: сначала приложения с большим кэшем
+        apps.sortByDescending { it.cacheBytes }
+
+        adapter.notifyDataSetChanged()
+        status.text = "Найдено приложений: ${apps.size}"
+    }
+}
