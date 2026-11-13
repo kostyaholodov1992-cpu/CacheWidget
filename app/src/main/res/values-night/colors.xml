@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="screen_bg">#121212</color>
-    <color name="text_primary">#FFFFFF</color>      
-    <color name="status_text">#BDBDBD</color>
-    <color name="header_text">#8AB4F8</color>
-    <color name="header_bg">#2A2A2E</color>
-    <color name="overlay_bg">#80000000</color>
-    <color name="button_bg_base">#22FFFFFF</color>  
     <color name="text_primary">#FFFFFF</color>
+    <color name="status_text">#BDBDBD</color>
+    <color name="header_bg">#2A2A2E</color>
+    <color name="header_text">#8AB4F8</color>
+    <color name="button_bg_base">#33FFFFFF</color>
+    <color name="overlay_bg">#80000000</color>
     <color name="ic_launcher_background">#2196F3</color>
 </resources>
