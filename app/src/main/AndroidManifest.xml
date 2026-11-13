@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name="@string/Очистить кэш"
+            android:name="Очистить кэш"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
             <intent-filter>
