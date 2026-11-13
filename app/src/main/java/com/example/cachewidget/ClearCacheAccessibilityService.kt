@@ -1,40 +1,56 @@
 package com.example.cachewidget
 
 import android.accessibilityservice.AccessibilityService
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
 class ClearCacheAccessibilityService : AccessibilityService() {
 
+    private var stage = 0
+    private val handler = Handler(Looper.getMainLooper())
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        stage = 0
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        if (event.packageName?.toString() != "com.android.settings") return
+        val root = rootInActiveWindow ?: return
 
-        // Работаем только на экранах настроек (пакет com.android.settings)
-        val pkg = event.packageName?.toString() ?: return
-        if (pkg != "com.android.settings") return
-
-        rootInActiveWindow ?: return
-
-        // Ищем кнопку «Очистить кэш» (может называться по-разному на разных прошивках)
-        val texts = listOf("Очистить кэш", "Clear cache", "Очистити кеш")
-        for (text in texts) {
-            val node = findNodeByText(rootInActiveWindow, text)
-            if (node != null && node.isEnabled) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                return // нажали — выходим, чтобы не нажимать повторно
+        when (stage) {
+            0 -> {
+                // Шаг 1: на странице приложения нажимаем «Хранилище»
+                for (label in listOf("Хранилище", "Storage", "Сховище", "Хранилище и кэш")) {
+                    val node = root.findAccessibilityNodeInfosByText(label).firstOrNull()
+                    if (node != null && node.isEnabled) {
+                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        stage = 1
+                        return
+                    }
+                }
+            }
+            1 -> {
+                // Шаг 2: на экране «Хранилище» нажимаем «Очистить кэш»
+                for (label in listOf("Очистить кэш", "Clear cache", "Очистити кеш")) {
+                    val node = root.findAccessibilityNodeInfosByText(label).firstOrNull()
+                    if (node != null && node.isEnabled) {
+                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        stage = 2
+                        // Возвращаемся назад и сбрасываем состояние
+                        handler.postDelayed({
+                            performGlobalAction(GLOBAL_ACTION_BACK)
+                            stage = 0
+                        }, 1500)
+                        return
+                    }
+                }
             }
         }
     }
 
-    private fun findNodeByText(node: AccessibilityNodeInfo, text: String): AccessibilityNodeInfo? {
-        if (node.text?.toString()?.equals(text, ignoreCase = true) == true) return node
-        for (i in 0 until node.childCount) {
-            findNodeByText(node.getChild(i) ?: continue, text)?.let { return it }
-        }
-        return null
-    }
-
-    override fun onInterrupt() {
-        // пусто — прерывание службы нам не критично
-    }
+    override fun onInterrupt() {}
 }
