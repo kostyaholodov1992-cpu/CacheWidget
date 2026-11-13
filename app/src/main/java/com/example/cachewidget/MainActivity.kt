@@ -62,11 +62,22 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        adapter = AppAdapter(apps) { app ->
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                .setData(Uri.parse("package:${app.packageName}"))
-            startActivity(intent)
-        }
+        adapter = AppAdapter(
+            apps,
+            onAppClick = { app ->
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:${app.packageName}"))
+                startActivity(intent)
+            },
+            onHeaderClick = { header ->
+                if (header.name.startsWith("Установленные")) {
+                    showUser = !showUser
+                } else if (header.name.startsWith("Системные")) {
+                    showSystem = !showSystem
+                }
+                refreshDisplay()
+            }
+        )
 
         val recycler = findViewById<RecyclerView>(R.id.recycler_apps)
         recycler.layoutManager = LinearLayoutManager(this)
@@ -86,16 +97,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btn_clear).setOnClickListener { startClearing() }
-
-        findViewById<TextView>(R.id.tv_header_user).setOnClickListener {
-            showUser = !showUser
-            refreshDisplay()
-        }
-
-        findViewById<TextView>(R.id.tv_header_system).setOnClickListener {
-            showSystem = !showSystem
-            refreshDisplay()
-        }
 
         ContextCompat.registerReceiver(
             this, nextReceiver,
@@ -198,9 +199,6 @@ class MainActivity : AppCompatActivity() {
 
         clearList = userAppsCache + systemAppsCache
 
-        findViewById<TextView>(R.id.tv_header_user).visibility = android.view.View.VISIBLE
-        findViewById<TextView>(R.id.tv_header_system).visibility = android.view.View.VISIBLE
-
         refreshDisplay()
 
         val withCache = clearList.count { it.cacheBytes > 0 }
@@ -209,25 +207,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshDisplay() {
         apps.clear()
+
+        apps.add(
+            AppInfo(
+                if (showUser) "Установленные (${userAppsCache.size})  ▾" else "Установленные (${userAppsCache.size})  ▸",
+                "", 0, isHeader = true
+            )
+        )
         if (showUser) apps.addAll(userAppsCache)
+
+        apps.add(
+            AppInfo(
+                if (showSystem) "Системные (${systemAppsCache.size})  ▾" else "Системные (${systemAppsCache.size})  ▸",
+                "", 0, isHeader = true
+            )
+        )
         if (showSystem) apps.addAll(systemAppsCache)
+
         adapter.notifyDataSetChanged()
-        updateHeaderTitles()
-    }
-
-    private fun updateHeaderTitles() {
-        val hUser = findViewById<TextView>(R.id.tv_header_user)
-        val hSystem = findViewById<TextView>(R.id.tv_header_system)
-
-        hUser.text = if (showUser)
-            "Установленные (${userAppsCache.size})  ▾"
-        else
-            "Установленные (${userAppsCache.size})  ▸"
-
-        hSystem.text = if (showSystem)
-            "Системные (${systemAppsCache.size})  ▾"
-        else
-            "Системные (${systemAppsCache.size})  ▸"
     }
 
     private fun startClearing() {
