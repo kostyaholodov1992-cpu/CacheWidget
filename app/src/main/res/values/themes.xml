@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.AppCompat.Light" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>
