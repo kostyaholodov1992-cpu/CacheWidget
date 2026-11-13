@@ -1,27 +1,33 @@
 package com.example.cachewidget
 
+import android.app.AppOpsManager
+import android.app.usage.StorageStatsManager
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
+import android.graphics.PixelFormat
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
-import android.app.AppOpsManager
 import android.os.Process
+import android.provider.Settings
+import android.view.Gravity
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.os.Build
-import android.app.usage.StorageStatsManager
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,6 +38,9 @@ class MainActivity : AppCompatActivity() {
     private var token = 0
     private var advancedToken = -1
     private val handler = Handler(Looper.getMainLooper())
+
+    private var overlayView: LinearLayout? = null
+    private var overlayText: TextView? = null
 
     private val nextReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -77,6 +86,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         try { unregisterReceiver(nextReceiver) } catch (_: Exception) {}
+        hideOverlay()
         ClearCacheAccessibilityService.isRunning = false
         ClearCacheAccessibilityService.currentTask = null
         super.onDestroy()
@@ -157,12 +167,79 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // Шторка поверх экрана требует разрешения «Поверх других окон»
+        if (!Settings.canDrawOverlays(this)) {
+            status.text = "Дайте разрешение «Поверх других окон»"
+            Toast.makeText(this, "Это нужно, чтобы показывать ползунок во время чистки", Toast.LENGTH_LONG).show()
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+            return
+        }
+
         clearIndex = 0
         token = 0
         advancedToken = -1
         ClearCacheAccessibilityService.isRunning = true
-        status.text = "Чищу 1 из ${apps.size}: ${apps[0].name}"
+        showOverlay()
+        updateOverlayText("Чищу 1 из ${apps.size}: ${apps[0].name}")
         openNextApp()
+    }
+
+    private fun showOverlay() {
+        if (overlayView != null) return
+
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        else
+            @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            type,
+            // NOT_FOCUSABLE — не перехватываем кнопки, НЕ ставим NOT_TOUCHABLE:
+            // шторка глотает случайные касания, а службе они не нужны
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            PixelFormat.TRANSLUCENT
+        )
+        params.gravity = Gravity.CENTER
+
+        val text = TextView(this).apply {
+            textSize = 16f
+            setPadding(0, 48, 0, 0)
+            gravity = Gravity.CENTER
+        }
+
+        overlayView = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(0xF2FFFFFF.toInt())
+            addView(ProgressBar(this@MainActivity))
+            addView(text)
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        overlayText = text
+
+        windowManager.addView(overlayView, params)
+    }
+
+    private fun updateOverlayText(message: String) {
+        overlayText?.text = message
+    }
+
+    private fun hideOverlay() {
+        try {
+            overlayView?.let { windowManager.removeView(it) }
+        } catch (_: Exception) {}
+        overlayView = null
+        overlayText = null
     }
 
     private fun openNextApp() {
@@ -182,19 +259,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun advance() {
-        if (token != advancedToken) {
-            advancedToken = token
-            clearIndex++
-            val status = findViewById<TextView>(R.id.tv_status)
-            if (clearIndex >= apps.size) {
-                ClearCacheAccessibilityService.isRunning = false
-                status.text = "Готово! Очищено приложений: ${apps.size}"
-                Toast.makeText(this, "Кэш очищен, обновляю список", Toast.LENGTH_LONG).show()
-                scanApps()
-            } else {
-                status.text = "Чищу ${clearIndex + 1} из ${apps.size}: ${apps[clearIndex].name}"
-                openNextApp()
-            }
+        if (token == advancedToken) return
+        advancedToken = token
+        clearIndex++
+
+        if (clearIndex >= apps.size) {
+            ClearCacheAccessibilityService.isRunning = false
+            hideOverlay()
+            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: ${apps.size}"
+            Toast.makeText(this, "Кэш очищен, обновляю список", Toast.LENGTH_LONG).show()
+            scanApps()
+        } else {
+            updateOverlayText("Чищу ${clearIndex + 1} из ${apps.size}: ${apps[clearIndex].name}")
+            openNextApp()
         }
     }
 }
