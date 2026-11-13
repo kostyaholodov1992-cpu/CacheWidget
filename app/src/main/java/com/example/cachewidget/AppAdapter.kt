@@ -1,9 +1,9 @@
 package com.example.cachewidget
 
-import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
@@ -18,12 +18,13 @@ class AppAdapter(
     }
 
     class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val title: TextView = view.findViewById(android.R.id.text1)
+        val title: TextView = view.findViewById(R.id.tv_header)
     }
 
     class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val name: TextView = view.findViewById(android.R.id.text1)
-        val cache: TextView = view.findViewById(android.R.id.text2)
+        val icon: ImageView = view.findViewById(R.id.iv_icon)
+        val name: TextView = view.findViewById(R.id.tv_name)
+        val cache: TextView = view.findViewById(R.id.tv_cache)
     }
 
     override fun getItemViewType(position: Int) =
@@ -32,20 +33,18 @@ class AppAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_HEADER) {
-            HeaderViewHolder(inflater.inflate(android.R.layout.simple_list_item_1, parent, false))
+            HeaderViewHolder(inflater.inflate(R.layout.item_header, parent, false))
         } else {
-            AppViewHolder(inflater.inflate(android.R.layout.two_line_list_item, parent, false))
+            AppViewHolder(inflater.inflate(R.layout.item_app, parent, false))
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = items[position]
         when (holder) {
-            is HeaderViewHolder -> {
-                holder.title.text = item.name
-                holder.title.setTypeface(null, Typeface.BOLD)
-            }
+            is HeaderViewHolder -> holder.title.text = item.name
             is AppViewHolder -> {
+                holder.icon.setImageDrawable(item.icon)
                 holder.name.text = item.name
                 holder.cache.text = formatSize(item.cacheBytes)
                 holder.itemView.setOnClickListener { onClick(item) }
@@ -56,6 +55,7 @@ class AppAdapter(
     override fun getItemCount() = items.size
 
     private fun formatSize(bytes: Long): String {
+        if (bytes <= 0) return "Нет кэша"
         val mb = bytes / 1024.0 / 1024.0
         return if (mb >= 100) "${mb.toInt()} МБ" else String.format("%.1f МБ", mb)
     }
