@@ -254,7 +254,7 @@ class MainActivity : AppCompatActivity() {
         )
         params.gravity = Gravity.BOTTOM
 
-        val text = TextView(this).apply {
+        val progressText = TextView(this).apply {
             textSize = 14f
             gravity = Gravity.CENTER_VERTICAL
             setPadding(32, 24, 16, 24)
@@ -269,10 +269,10 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(0xEEFFFFFF.toInt())
-            addView(text, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(progressText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(stopButton)
         }
-        overlayText = text
+        overlayText = progressText
 
         try {
             windowManager.addView(overlayView, params)
