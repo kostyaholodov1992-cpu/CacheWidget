@@ -15,35 +15,38 @@
         android:paddingBottom="8dp" />
 
     <Button
-    android:id="@+id/btn_scan"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="Сканировать"
-    android:background="@drawable/btn_background"
-    android:textColor="@color/text_primary"
-    android:textStyle="bold"
-    android:elevation="2dp"
+        android:id="@+id/btn_scan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/btn_background"
+        android:elevation="2dp"
+        android:text="Сканировать"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold" />
 
-   <Button
-    android:id="@+id/btn_clear"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="Очистить кэш"
-    android:background="@drawable/btn_background"
-    android:textColor="@color/text_primary"
-    android:textStyle="bold"
-    android:elevation="2dp"
     <Button
-    android:id="@+id/btn_permission"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="Открыть настройки доступности"
-    android:background="@drawable/btn_background"
-    android:textColor="@color/text_primary"
-    android:textStyle="bold"
-    android:elevation="2dp"
+        android:id="@+id/btn_clear"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/btn_background"
+        android:elevation="2dp"
+        android:text="Очистить кэш"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold" />
 
-    
+    <Button
+        android:id="@+id/btn_permission"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/btn_background"
+        android:elevation="2dp"
+        android:text="Открыть настройки доступности"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_apps"
         android:layout_width="match_parent"
