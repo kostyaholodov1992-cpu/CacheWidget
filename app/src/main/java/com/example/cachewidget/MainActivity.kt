@@ -32,12 +32,15 @@ import androidx.recyclerview.widget.RecyclerView
 class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: AppAdapter
-    private val apps = mutableListOf<AppInfo>()
+    private val apps = mutableListOf<AppInfo>()      // то, что показываем на экране (с заголовками)
+    private var clearList = listOf<AppInfo>()        // то, что чистим (без заголовков)
 
     private var clearIndex = 0
     private var token = 0
     private var advancedToken = -1
     private val handler = Handler(Looper.getMainLooper())
+
+    private var pendingClear = false
 
     private var overlayView: LinearLayout? = null
     private var overlayText: TextView? = null
@@ -84,6 +87,16 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    // Если пользователь вернулся с экрана разрешений с включённым тумблером — стартуем сами
+    override fun onResume() {
+        super.onResume()
+        if (pendingClear && Settings.canDrawOverlays(this)) {
+            pendingClear = false
+            Toast.makeText(this, "Разрешение получено, начинаю очистку", Toast.LENGTH_SHORT).show()
+            doStartClearing()
+        }
+    }
+
     override fun onDestroy() {
         try { unregisterReceiver(nextReceiver) } catch (_: Exception) {}
         hideOverlay()
@@ -128,7 +141,9 @@ class MainActivity : AppCompatActivity() {
 
         status.text = "Сканирую..."
 
-        apps.clear()
+        val userApps = mutableListOf<AppInfo>()
+        val systemApps = mutableListOf<AppInfo>()
+
         val pm = packageManager
         val installed = pm.getInstalledApplications(0)
 
@@ -143,14 +158,32 @@ class MainActivity : AppCompatActivity() {
             } else 0L
 
             if (cache >= 1L * 1024 * 1024) {
-                apps.add(AppInfo(name, info.packageName, cache))
+                val item = AppInfo(name, info.packageName, cache)
+                if (info.flags and ApplicationInfo.FLAG_SYSTEM == 0) {
+                    userApps.add(item)
+                } else {
+                    systemApps.add(item)
+                }
             }
         }
 
-        apps.sortByDescending { it.cacheBytes }
+        userApps.sortByDescending { it.cacheBytes }
+        systemApps.sortByDescending { it.cacheBytes }
+
+        apps.clear()
+        if (userApps.isNotEmpty()) {
+            apps.add(AppInfo("Установленные", "", 0, isHeader = true))
+            apps.addAll(userApps)
+        }
+        if (systemApps.isNotEmpty()) {
+            apps.add(AppInfo("Системные", "", 0, isHeader = true))
+            apps.addAll(systemApps)
+        }
+
+        clearList = userApps + systemApps
 
         adapter.notifyDataSetChanged()
-        status.text = "Приложений с кэшем: ${apps.size}"
+        status.text = "С кэшем: ${clearList.size} (установленных ${userApps.size}, системных ${systemApps.size})"
     }
 
     private fun startClearing() {
@@ -162,15 +195,15 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             return
         }
-        if (apps.isEmpty()) {
+        if (clearList.isEmpty()) {
             status.text = "Сначала нажмите «Сканировать»"
             return
         }
 
-        // Шторка поверх экрана требует разрешения «Поверх других окон»
         if (!Settings.canDrawOverlays(this)) {
-            status.text = "Дайте разрешение «Поверх других окон»"
-            Toast.makeText(this, "Это нужно, чтобы показывать ползунок во время чистки", Toast.LENGTH_LONG).show()
+            pendingClear = true
+            status.text = "Дайте разрешение «Поверх других окон» и вернитесь"
+            Toast.makeText(this, "Включите тумблер и нажмите «Назад» — очистка начнётся сама", Toast.LENGTH_LONG).show()
             val intent = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")
@@ -179,12 +212,16 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        doStartClearing()
+    }
+
+    private fun doStartClearing() {
         clearIndex = 0
         token = 0
         advancedToken = -1
         ClearCacheAccessibilityService.isRunning = true
         showOverlay()
-        updateOverlayText("Чищу 1 из ${apps.size}: ${apps[0].name}")
+        updateOverlayText("Чищу 1 из ${clearList.size}: ${clearList[0].name}")
         openNextApp()
     }
 
@@ -200,8 +237,6 @@ class MainActivity : AppCompatActivity() {
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             type,
-            // NOT_FOCUSABLE — не перехватываем кнопки, НЕ ставим NOT_TOUCHABLE:
-            // шторка глотает случайные касания, а службе они не нужны
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT
@@ -227,7 +262,13 @@ class MainActivity : AppCompatActivity() {
         }
         overlayText = text
 
-        windowManager.addView(overlayView, params)
+        try {
+            windowManager.addView(overlayView, params)
+        } catch (e: Exception) {
+            overlayView = null
+            overlayText = null
+            Toast.makeText(this, "Не удалось показать шторку: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun updateOverlayText(message: String) {
@@ -245,7 +286,7 @@ class MainActivity : AppCompatActivity() {
     private fun openNextApp() {
         token++
         val current = token
-        val app = apps[clearIndex]
+        val app = clearList[clearIndex]
         ClearCacheAccessibilityService.currentTask = "storage"
 
         // Если за 8 секунд ничего не произошло — пропускаем приложение
@@ -263,14 +304,14 @@ class MainActivity : AppCompatActivity() {
         advancedToken = token
         clearIndex++
 
-        if (clearIndex >= apps.size) {
+        if (clearIndex >= clearList.size) {
             ClearCacheAccessibilityService.isRunning = false
             hideOverlay()
-            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: ${apps.size}"
+            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: ${clearList.size}"
             Toast.makeText(this, "Кэш очищен, обновляю список", Toast.LENGTH_LONG).show()
             scanApps()
         } else {
-            updateOverlayText("Чищу ${clearIndex + 1} из ${apps.size}: ${apps[clearIndex].name}")
+            updateOverlayText("Чищу ${clearIndex + 1} из ${clearList.size}: ${clearList[clearIndex].name}")
             openNextApp()
         }
     }
