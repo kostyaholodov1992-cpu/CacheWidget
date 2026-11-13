@@ -90,7 +90,6 @@ class MainActivity : AppCompatActivity() {
         apps.clear()
         val pm = packageManager
         val installed = pm.getInstalledApplications(0)
-            .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 }
 
         for (info in installed) {
             val name = try { pm.getApplicationLabel(info).toString() } catch (_: Exception) { info.packageName }
