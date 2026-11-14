@@ -11,5 +11,6 @@
         android:text="@string/widget_title"
         android:textColor="@android:color/white"
         android:textStyle="bold"
-        android:background="@drawable/widget_bg"/>
+        android:background="@drawable/widget_bg_rounded"
+
 </LinearLayout>
