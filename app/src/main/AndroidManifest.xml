@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.cachewidget">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
@@ -37,48 +36,42 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- Плитка 1x1 -->
         <receiver
-            android:name=".CacheWidgetProvider"
+            android:name=".CacheWidgetProvider1x1"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info" />
+                android:resource="@xml/widget_provider_1x1" />
         </receiver>
+
+        <!-- Плитка 2x2 -->
         <receiver
-    android:name=".CacheWidgetProvider"
-    android:exported="false">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/widget_provider_1x1" />
-</receiver>
+            android:name=".CacheWidgetProvider2x2"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android:appwidget.provider"
+                android:resource="@xml/widget_provider_2x2" />
+        </receiver>
 
-<receiver
-    android:name=".CacheWidgetProvider"
-    android:exported="false">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/widget_provider_2x2" />
-</receiver>
-
-<receiver
-    android:name=".CacheWidgetProvider"
-    android:exported="false">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/widget_provider_3x3" />
-</receiver>
+        <!-- Плитка 3x3 -->
+        <receiver
+            android:name=".CacheWidgetProvider3x3"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android:appwidget.provider"
+                android:resource="@xml/widget_provider_3x3" />
+        </receiver>
 
     </application>
 </manifest>
+
