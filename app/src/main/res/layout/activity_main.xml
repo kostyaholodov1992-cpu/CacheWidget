@@ -5,10 +5,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    <!-- Заменяем жёсткий цвет на системный фон темы -->
     android:background="?android:colorBackground">
 
-    <!-- Верхняя строка: статус + кнопка меню -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -21,7 +19,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textSize="14sp"
-            <!-- Цвет теперь зависит от темы автоматически -->
             android:textColor="?android:textColorSecondary"
             android:paddingBottom="8dp" />
 
@@ -32,13 +29,10 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Меню"
             android:src="@drawable/ic_more_vert"
-            <!-- Цвет иконки тоже будет меняться -->
             android:tint="?android:textColorPrimary"
             android:scaleType="centerInside" />
     </LinearLayout>
 
-    <!-- Карточка: Кэш -->
-    <!-- Заменяем @color/header_bg на ?attr/colorSurface -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -78,7 +72,6 @@
             android:layout_height="wrap_content"
             android:max="100"
             android:progress="0"
-            <!-- Цвет прогресс-бара тоже можно сделать тематическим, но #00B0FF обычно ок -->
             android:progressTint="#00B0FF"
             android:layout_marginTop="6dp" />
 
@@ -108,8 +101,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Карточка: Хранилище -->
-    <!-- Аналогично меняем фон на ?attr/colorSurface -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -178,8 +169,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Кнопка: Сканировать -->
-    <!-- ЗАМЕНИЛИ Button на MaterialButton -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_scan"
         android:layout_width="match_parent"
@@ -187,3 +176,54 @@
         android:layout_marginBottom="8dp"
         android:text="Сканировать"
         android:textStyle="bold"
+        app:cornerRadius="8dp"
+        style="@style/Widget.Material3.Button" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_clear"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Очистить кэш"
+        android:textStyle="bold"
+        app:cornerRadius="8dp"
+        style="@style/Widget.Material3.Button" />
+
+    <LinearLayout
+        android:id="@+id/selectAllRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingVertical="8dp">
+
+        <CheckBox
+            android:id="@+id/checkBoxSelectAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="?attr/colorPrimary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Выбрать все"
+            android:textColor="?android:textColorPrimary"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/selectedCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 из 0"
+            android:textColor="?android:textColorSecondary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_apps"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>
