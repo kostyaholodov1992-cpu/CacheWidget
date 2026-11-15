@@ -5,20 +5,25 @@
     android:orientation="vertical"
     android:gravity="center"
     android:background="@drawable/widget_bg_rounded"
-    android:padding="4dp">
+    android:padding="8dp">
 
+    <!-- Крупная иконка, занимает место пропорционально -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="🧹"
-        android:textSize="18sp" />
+        android:textSize="24sp"
+        android:layout_marginBottom="4dp"/>
 
+    <!-- Кнопка на всю ширину, но не гигантская -->
     <Button
         android:id="@+id/widget_action"
         android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:text="СТАРТ"
+        android:layout_height="wrap_content"
+        android:minHeight="32dp"
+        android:text="Очистить кэш"
         android:textColor="#FFFFFF"
-        android:textSize="11sp"
-        android:background="@drawable/widget_btn" />
+        android:textSize="12sp"
+        android:background="@drawable/widget_btn"
+        android:paddingVertical="4dp"/>
 </LinearLayout>
