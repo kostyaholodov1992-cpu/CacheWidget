@@ -12,9 +12,11 @@ import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.os.StatFs
 import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
@@ -30,6 +32,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.io.File
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -57,6 +60,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var checkBoxSelectAll: CheckBox
     private lateinit var selectedCount: TextView
 
+    // Карточки статистики
+    private lateinit var pbCache: ProgressBar
+    private lateinit var tvCachePercent: TextView
+    private lateinit var tvCacheUsed: TextView
+    private lateinit var tvCacheTotal: TextView
+
+    private lateinit var pbStorage: ProgressBar
+    private lateinit var tvStoragePercent: TextView
+    private lateinit var tvStorageUsed: TextView
+    private lateinit var tvStorageTotal: TextView
+
     private val nextReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ClearCacheAccessibilityService.ACTION_CLEAR_NEXT) advance()
@@ -72,6 +86,16 @@ class MainActivity : AppCompatActivity() {
 
         checkBoxSelectAll = findViewById(R.id.checkBoxSelectAll)
         selectedCount = findViewById(R.id.selectedCount)
+
+        pbCache = findViewById(R.id.pb_cache)
+        tvCachePercent = findViewById(R.id.tv_cache_percent)
+        tvCacheUsed = findViewById(R.id.tv_cache_used)
+        tvCacheTotal = findViewById(R.id.tv_cache_total)
+
+        pbStorage = findViewById(R.id.pb_storage)
+        tvStoragePercent = findViewById(R.id.tv_storage_percent)
+        tvStorageUsed = findViewById(R.id.tv_storage_used)
+        tvStorageTotal = findViewById(R.id.tv_storage_total)
 
         adapter = AppAdapter(
             apps,
@@ -119,6 +143,9 @@ class MainActivity : AppCompatActivity() {
             IntentFilter(ClearCacheAccessibilityService.ACTION_CLEAR_NEXT),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
+
+        updateStorageStats()
+        updateCacheStats()
     }
 
     override fun onResume() {
@@ -158,6 +185,49 @@ class MainActivity : AppCompatActivity() {
                 f.delete()
             }
         } catch (_: Exception) {}
+    }
+
+    // --- Карточки статистики ---
+
+    private fun updateStorageStats() {
+        try {
+            val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)
+            val total = stat.blockCountLong * stat.blockSizeLong
+            val available = stat.availableBlocksLong * stat.blockSizeLong
+            val used = total - available
+
+            val percent = if (total > 0) (used * 100 / total).toInt() else 0
+            tvStoragePercent.text = "$percent%"
+            tvStorageUsed.text = formatGb(used)
+            tvStorageTotal.text = formatGb(total)
+            pbStorage.progress = percent
+        } catch (_: Exception) {
+            // Если диск не читается — просто оставляем нули
+        }
+    }
+
+    private fun updateCacheStats() {
+        try {
+            var cacheBytes = 0L
+            for (app in userAppsCache) cacheBytes += app.cacheBytes
+            for (app in systemAppsCache) cacheBytes += app.cacheBytes
+
+            val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)
+            val total = stat.blockCountLong * stat.blockSizeLong
+
+            val percent = if (total > 0) (cacheBytes * 100 / total).toInt() else 0
+            tvCachePercent.text = "$percent%"
+            tvCacheUsed.text = formatGb(cacheBytes)
+            tvCacheTotal.text = formatGb(total)
+            pbCache.progress = percent
+        } catch (_: Exception) {
+            // Не удалось прочитать диск — оставляем нули
+        }
+    }
+
+    private fun formatGb(bytes: Long): String {
+        val gb = bytes / 1073741824.0
+        return String.format(Locale.US, "%.2f GB", gb)
     }
 
     // --- Проверки разрешений ---
@@ -244,6 +314,8 @@ class MainActivity : AppCompatActivity() {
         clearList = userAppsCache + systemAppsCache
 
         refreshDisplay()
+        updateStorageStats()
+        updateCacheStats()
 
         val withCache = clearList.count { it.cacheBytes > 0 }
         status.text = "Найдено приложений: ${clearList.size} (установленных ${userAppsCache.size}, системных ${systemAppsCache.size}). С кэшем: $withCache"
