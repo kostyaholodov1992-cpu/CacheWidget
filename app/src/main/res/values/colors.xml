@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="screen_bg">#121212</color>
-    <color name="text_primary">#FFFFFF</color>
-    <color name="status_text">#BDBDBD</color>
-    <color name="header_bg">#2A2A2E</color>
-    <color name="header_text">#8AB4F8</color>
-    <color name="button_bg_base">#33FFFFFF</color>
-    <color name="overlay_bg">#80000000</color>
+    <!-- Основной акцент (заменит header_text и даст цвет кнопкам, иконкам) -->
+    <color name="colorPrimary">#8AB4F8</color>
+    <color name="colorOnPrimary">#1C1B1F</color>
+
+    <!-- Вторичный акцент (для менее важных элементов) -->
+    <color name="colorSecondary">#BDBDBD</color>
+    <color name="colorOnSecondary">#1C1B1F</color>
+
+    <!-- Фон поверхности (заменит screen_bg и header_bg) -->
+    <!-- В светлой теме будет белым, в тёмной — #121212 -->
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorOnSurface">#1C1B1F</color>
+
+    <!-- Цвет ошибки/предупреждения (если понадобится) -->
+    <color name="colorError">#B3261E</color>
+    <color name="colorOnError">#FFFFFF</color>
+
+    <!-- Цвет иконки лаунчера (можно оставить как было) -->
     <color name="ic_launcher_background">#2196F3</color>
 </resources>
