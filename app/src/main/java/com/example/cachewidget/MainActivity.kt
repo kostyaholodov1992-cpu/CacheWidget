@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.graphics.PixelFormat
 import android.net.Uri
@@ -19,15 +20,21 @@ import android.os.Process
 import android.os.StatFs
 import android.provider.Settings
 import android.view.Gravity
+import android.view.Menu
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -39,6 +46,12 @@ class MainActivity : AppCompatActivity() {
     companion object {
         // Минимальный размер кэша, чтобы приложение попало в список (1 МБ)
         private const val MIN_CACHE_BYTES: Long = 1024L * 1024L
+
+        private const val PREFS_NAME = "settings"
+        private const val KEY_THEME = "theme_mode"
+        private const val THEME_DARK = "dark"
+        private const val THEME_LIGHT = "light"
+        private const val THEME_AUTO = "auto"
     }
 
     private lateinit var adapter: AppAdapter
@@ -62,6 +75,8 @@ class MainActivity : AppCompatActivity() {
     private var overlayView: LinearLayout? = null
     private var overlayText: TextView? = null
 
+    private lateinit var prefs: SharedPreferences
+
     private lateinit var checkBoxSelectAll: CheckBox
     private lateinit var selectedCount: TextView
 
@@ -83,6 +98,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         installCrashLogger()
@@ -130,15 +147,8 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btn_scan).setOnClickListener { scanApps() }
 
-        findViewById<Button>(R.id.btn_permission).setOnClickListener {
-            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                putExtra(
-                    Intent.EXTRA_COMPONENT_NAME,
-                    ComponentName(packageName, ClearCacheAccessibilityService::class.java.name)
-                )
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
+        findViewById<ImageButton>(R.id.btn_menu).setOnClickListener { view ->
+            showMenu(view)
         }
 
         findViewById<Button>(R.id.btn_clear).setOnClickListener { startClearing() }
@@ -151,6 +161,110 @@ class MainActivity : AppCompatActivity() {
 
         updateStorageStats()
         updateCacheStats()
+    }
+
+    // --- Меню и тема ---
+
+    private fun showMenu(anchor: android.view.View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.add(Menu.NONE, 1, Menu.NONE, "Настройки доступности")
+        popup.menu.add(Menu.NONE, 2, Menu.NONE, "Тема")
+
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                        putExtra(
+                            Intent.EXTRA_COMPONENT_NAME,
+                            ComponentName(packageName, ClearCacheAccessibilityService::class.java.name)
+                        )
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                    true
+                }
+                2 -> {
+                    showThemePanel()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun applySavedTheme() {
+        val mode = when (prefs.getString(KEY_THEME, THEME_AUTO)) {
+            THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+            THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+            else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        }
+        AppCompatDelegate.setDefaultNightMode(mode)
+    }
+
+    private fun currentThemeKey(): String = when (AppCompatDelegate.getDefaultNightMode()) {
+        AppCompatDelegate.MODE_NIGHT_YES -> THEME_DARK
+        AppCompatDelegate.MODE_NIGHT_NO -> THEME_LIGHT
+        else -> THEME_AUTO
+    }
+
+    private fun showThemePanel() {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 16)
+        }
+
+        val switches = mutableMapOf<String, SwitchCompat>()
+
+        fun addSwitch(key: String, label: String) {
+            val sw = SwitchCompat(this).apply {
+                text = label
+                textSize = 16f
+                setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                isChecked = currentThemeKey() == key
+            }
+            switches[key] = sw
+            container.addView(sw)
+        }
+
+        addSwitch(THEME_DARK, "Тёмная")
+        addSwitch(THEME_LIGHT, "Светлая")
+        addSwitch(THEME_AUTO, "Автоматическая")
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Тема")
+            .setView(container)
+            .setNegativeButton("Готово", null)
+            .create()
+
+        fun selectTheme(key: String) {
+            // Ползунки исключают друг друга: включён только выбранный
+            for ((k, sw) in switches) {
+                sw.setOnCheckedChangeListener(null)
+                sw.isChecked = (k == key)
+            }
+            val mode = when (key) {
+                THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+            prefs.edit().putString(KEY_THEME, key).apply()
+            AppCompatDelegate.setDefaultNightMode(mode)
+            // Повесим слушателей обратно после программной смены состояний
+            for ((k, sw) in switches) {
+                sw.setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) selectTheme(k)
+                }
+            }
+        }
+
+        for ((k, sw) in switches) {
+            sw.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) selectTheme(k)
+            }
+        }
+
+        dialog.show()
     }
 
     override fun onResume() {
