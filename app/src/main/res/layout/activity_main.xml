@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@color/screen_bg">
+    <!-- Заменяем жёсткий цвет на системный фон темы -->
+    android:background="?android:colorBackground">
 
     <!-- Верхняя строка: статус + кнопка меню -->
     <LinearLayout
@@ -19,7 +21,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textSize="14sp"
-            android:textColor="@color/status_text"
+            <!-- Цвет теперь зависит от темы автоматически -->
+            android:textColor="?android:textColorSecondary"
             android:paddingBottom="8dp" />
 
         <ImageButton
@@ -29,16 +32,18 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Меню"
             android:src="@drawable/ic_more_vert"
-            android:tint="@color/text_primary"
+            <!-- Цвет иконки тоже будет меняться -->
+            android:tint="?android:textColorPrimary"
             android:scaleType="centerInside" />
     </LinearLayout>
 
     <!-- Карточка: Кэш -->
+    <!-- Заменяем @color/header_bg на ?attr/colorSurface -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/header_bg"
+        android:background="?attr/colorSurface"
         android:padding="14dp"
         android:layout_marginBottom="10dp">
 
@@ -52,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Кэш"
-                android:textColor="@color/text_primary"
+                android:textColor="?android:textColorPrimary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -61,7 +66,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0%"
-                android:textColor="@color/text_primary"
+                android:textColor="?android:textColorPrimary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -73,6 +78,7 @@
             android:layout_height="wrap_content"
             android:max="100"
             android:progress="0"
+            <!-- Цвет прогресс-бара тоже можно сделать тематическим, но #00B0FF обычно ок -->
             android:progressTint="#00B0FF"
             android:layout_marginTop="6dp" />
 
@@ -88,7 +94,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="0.00 GB"
-                android:textColor="@color/text_primary"
+                android:textColor="?android:textColorPrimary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -97,17 +103,18 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0.00 GB"
-                android:textColor="@color/status_text"
+                android:textColor="?android:textColorSecondary"
                 android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 
     <!-- Карточка: Хранилище -->
+    <!-- Аналогично меняем фон на ?attr/colorSurface -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/header_bg"
+        android:background="?attr/colorSurface"
         android:padding="14dp"
         android:layout_marginBottom="10dp">
 
@@ -121,7 +128,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Хранилище"
-                android:textColor="@color/text_primary"
+                android:textColor="?android:textColorPrimary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -130,7 +137,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0%"
-                android:textColor="@color/text_primary"
+                android:textColor="?android:textColorPrimary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -157,7 +164,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="0.00 GB"
-                android:textColor="@color/text_primary"
+                android:textColor="?android:textColorPrimary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -166,69 +173,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0.00 GB"
-                android:textColor="@color/status_text"
+                android:textColor="?android:textColorSecondary"
                 android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <Button
+    <!-- Кнопка: Сканировать -->
+    <!-- ЗАМЕНИЛИ Button на MaterialButton -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_scan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:background="@drawable/btn_background"
-        android:elevation="2dp"
         android:text="Сканировать"
-        android:textColor="@color/text_primary"
-        android:textStyle="bold" />
-
-    <Button
-        android:id="@+id/btn_clear"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/btn_background"
-        android:elevation="2dp"
-        android:text="Очистить кэш"
-        android:textColor="@color/text_primary"
-        android:textStyle="bold" />
-
-    <!-- Строка "Выбрать все" -->
-    <LinearLayout
-        android:id="@+id/selectAllRow"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingVertical="8dp">
-
-        <CheckBox
-            android:id="@+id/checkBoxSelectAll"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:buttonTint="#00B0FF" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="Выбрать все"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/selectedCount"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0 из 0"
-            android:textColor="@color/status_text"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_apps"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-</LinearLayout>
+        android:textStyle="bold"
