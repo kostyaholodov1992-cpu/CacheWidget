@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.CacheWidget" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Убрали windowBackground — теперь фон задаётся через colorSurface в MaterialTheme -->
-        <!-- При необходимости можно переопределить отдельные атрибуты здесь -->
+        <!-- Никаких windowBackground! -->
     </style>
 </resources>
+
