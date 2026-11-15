@@ -9,30 +9,34 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="12dp">
+        android:padding="16dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="🧹"
-            android:textSize="28sp" />
+            android:textSize="32sp"
+            android:layout_marginBottom="8dp"/>
 
         <TextView
+            android:id="@+id/widget_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Очистить кэш"
-            android:textColor="#FFFFFF"
+            android:text="Готов к работе"
+            android:textColor="#B3B3B3"
             android:textSize="13sp"
-            android:layout_marginTop="6dp" />
+            android:layout_marginBottom="16dp"/>
 
         <Button
             android:id="@+id/widget_action"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="Старт"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:minWidth="120dp"
+            android:text="Очистить кэш"
             android:textColor="#FFFFFF"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:background="@drawable/widget_btn"
-            android:layout_marginTop="10dp" />
+            android:paddingHorizontal="16dp"/>
     </LinearLayout>
 </FrameLayout>
