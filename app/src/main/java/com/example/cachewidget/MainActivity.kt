@@ -209,62 +209,60 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showThemePanel() {
+        val current = currentThemeKey()
+
+        val options = listOf(
+            THEME_DARK to "Тёмная",
+            THEME_LIGHT to "Светлая",
+            THEME_AUTO to "Автоматическая"
+        )
+
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 16)
+            setPadding(48, 24, 48, 8)
         }
 
         val switches = mutableMapOf<String, SwitchCompat>()
 
-        fun addSwitch(key: String, label: String) {
+        for ((key, label) in options) {
             val sw = SwitchCompat(this).apply {
                 text = label
                 textSize = 16f
-                setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-                isChecked = currentThemeKey() == key
+                // Цвет текста НЕ задаём вручную — он берётся из темы
+                // и всегда читаем и в светлой, и в тёмной
+                isChecked = current == key
+                setOnCheckedChangeListener { _, isChecked ->
+                    // Реагируем только на включение: программное выключение
+                    // соседних ползунков не должно зацикливать логику
+                    if (!isChecked) return@setOnCheckedChangeListener
+
+                    // Ползунки исключают друг друга
+                    for ((k, other) in switches) {
+                        if (k != key) other.isChecked = false
+                    }
+
+                    val mode = when (key) {
+                        THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                        THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                    }
+                    prefs.edit().putString(KEY_THEME, key).apply()
+                    AppCompatDelegate.setDefaultNightMode(mode)
+
+                    // Принудительно пересобираем экран в новой теме.
+                    // Диалог при этом закроется — это нормальное поведение
+                    recreate()
+                }
             }
             switches[key] = sw
             container.addView(sw)
         }
 
-        addSwitch(THEME_DARK, "Тёмная")
-        addSwitch(THEME_LIGHT, "Светлая")
-        addSwitch(THEME_AUTO, "Автоматическая")
-
-        val dialog = AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle("Тема")
             .setView(container)
             .setNegativeButton("Готово", null)
-            .create()
-
-        fun selectTheme(key: String) {
-            // Ползунки исключают друг друга: включён только выбранный
-            for ((k, sw) in switches) {
-                sw.setOnCheckedChangeListener(null)
-                sw.isChecked = (k == key)
-            }
-            val mode = when (key) {
-                THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-                THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-            }
-            prefs.edit().putString(KEY_THEME, key).apply()
-            AppCompatDelegate.setDefaultNightMode(mode)
-            // Повесим слушателей обратно после программной смены состояний
-            for ((k, sw) in switches) {
-                sw.setOnCheckedChangeListener { _, isChecked ->
-                    if (isChecked) selectTheme(k)
-                }
-            }
-        }
-
-        for ((k, sw) in switches) {
-            sw.setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) selectTheme(k)
-            }
-        }
-
-        dialog.show()
+            .show()
     }
 
     override fun onResume() {
