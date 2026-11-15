@@ -36,6 +36,11 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        // Минимальный размер кэша, чтобы приложение попало в список (1 МБ)
+        private const val MIN_CACHE_BYTES: Long = 1024L * 1024L
+    }
+
     private lateinit var adapter: AppAdapter
     private val apps = mutableListOf<AppInfo>()
 
@@ -282,6 +287,8 @@ class MainActivity : AppCompatActivity() {
         val pm = packageManager
         val installed = pm.getInstalledApplications(0)
 
+        var skippedSmall = 0
+
         for (info in installed) {
             val name = try { pm.getApplicationLabel(info).toString() } catch (_: Exception) { info.packageName }
             val icon = try { pm.getApplicationIcon(info) } catch (_: Exception) { null }
@@ -293,6 +300,12 @@ class MainActivity : AppCompatActivity() {
                     stats.cacheBytes
                 } catch (_: Exception) { 0L }
             } else 0L
+
+            // Фильтр: пропускаем приложения, у которых кэш меньше 1 МБ
+            if (cache < MIN_CACHE_BYTES) {
+                skippedSmall++
+                continue
+            }
 
             val item = AppInfo(name, info.packageName, cache, icon = icon)
 
@@ -317,8 +330,8 @@ class MainActivity : AppCompatActivity() {
         updateStorageStats()
         updateCacheStats()
 
-        val withCache = clearList.count { it.cacheBytes > 0 }
-        status.text = "Найдено приложений: ${clearList.size} (установленных ${userAppsCache.size}, системных ${systemAppsCache.size}). С кэшем: $withCache"
+        val withCache = clearList.size
+        status.text = "Приложений с кэшем от 1 МБ: $withCache (установленных ${userAppsCache.size}, системных ${systemAppsCache.size}). Мелких пропущено: $skippedSmall"
     }
 
     private fun refreshDisplay() {
