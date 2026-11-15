@@ -29,6 +29,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -65,6 +66,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        installCrashLogger()
+        showLastErrorIfAny()
         supportActionBar?.hide()
 
         checkBoxSelectAll = findViewById(R.id.checkBoxSelectAll)
@@ -133,6 +136,32 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    // --- Ловушка крашей ---
+
+    private fun installCrashLogger() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            try {
+                val stack = e.stackTrace.take(8).joinToString("\n") { it.toString() }
+                File(filesDir, "error_log.txt")
+                    .writeText("${e.javaClass.simpleName}: ${e.message}\n$stack")
+            } catch (_: Exception) {}
+            previous?.uncaughtException(t, e)
+        }
+    }
+
+    private fun showLastErrorIfAny() {
+        try {
+            val f = File(filesDir, "error_log.txt")
+            if (f.exists()) {
+                findViewById<TextView>(R.id.tv_status).text = f.readText().take(400)
+                f.delete()
+            }
+        } catch (_: Exception) {}
+    }
+
+    // --- Проверки разрешений ---
+
     private fun hasUsageAccess(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -156,6 +185,8 @@ class MainActivity : AppCompatActivity() {
         ) ?: return false
         return setting.contains("$packageName/${ClearCacheAccessibilityService::class.java.name}")
     }
+
+    // --- Скан ---
 
     private fun scanApps() {
         val status = findViewById<TextView>(R.id.tv_status)
@@ -250,6 +281,8 @@ class MainActivity : AppCompatActivity() {
             adapter.toggleAll()
         }
     }
+
+    // --- Очистка ---
 
     private fun startClearing() {
         val status = findViewById<TextView>(R.id.tv_status)
