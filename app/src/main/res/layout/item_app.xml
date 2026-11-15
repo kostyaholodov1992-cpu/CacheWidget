@@ -26,21 +26,19 @@
             android:layout_height="wrap_content"
             android:textStyle="bold"
             android:textSize="16sp"
-            android:textColor="#FFFFFF" />
+            android:textColor="@color/text_primary" />
 
         <TextView
             android:id="@+id/tv_cache"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="12sp"
-            android:textColor="#AAAAAA" />
+            android:textColor="@color/status_text" />
     </LinearLayout>
 
     <CheckBox
         android:id="@+id/checkbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:buttonTint="#00B0FF"
-        android:clickable="false"
-        android:focusable="false" />
+        android:buttonTint="#00B0FF" />
 </LinearLayout>
