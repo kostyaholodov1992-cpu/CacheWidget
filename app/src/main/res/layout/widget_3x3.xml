@@ -4,33 +4,34 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg_rounded"
-    android:padding="16dp">
+    android:padding="20dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="🧹 Cache Widget"
         android:textColor="#FFFFFF"
-        android:textSize="17sp"
-        android:textStyle="bold" />
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
 
     <TextView
         android:id="@+id/widget_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Готов к очистке"
+        android:text="Освобождено: 0 МБ"
         android:textColor="#B3B3B3"
-        android:textSize="13sp"
-        android:layout_marginTop="8dp" />
+        android:textSize="14sp"
+        android:layout_marginBottom="20dp"/>
 
     <Button
         android:id="@+id/widget_action"
         android:layout_width="match_parent"
-        android:layout_height="46dp"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
         android:text="Очистить кэш"
         android:textColor="#FFFFFF"
-        android:textSize="15sp"
+        android:textSize="16sp"
         android:background="@drawable/widget_btn"
-        android:layout_gravity="bottom"
-        android:layout_marginTop="14dp" />
+        android:paddingVertical="8dp"/>
 </LinearLayout>
