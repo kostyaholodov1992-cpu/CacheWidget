@@ -7,5 +7,6 @@ data class AppInfo(
     val packageName: String,
     val cacheBytes: Long,
     val isHeader: Boolean = false,
-    val icon: Drawable? = null
+    val icon: Drawable? = null,
+    var isExpanded: Boolean = true
 )
