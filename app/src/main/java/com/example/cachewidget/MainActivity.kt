@@ -20,6 +20,7 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -52,6 +53,9 @@ class MainActivity : AppCompatActivity() {
     private var overlayView: LinearLayout? = null
     private var overlayText: TextView? = null
 
+    private lateinit var checkBoxSelectAll: CheckBox
+    private lateinit var selectedCount: TextView
+
     private val nextReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ClearCacheAccessibilityService.ACTION_CLEAR_NEXT) advance()
@@ -62,6 +66,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
+
+        checkBoxSelectAll = findViewById(R.id.checkBoxSelectAll)
+        selectedCount = findViewById(R.id.selectedCount)
 
         adapter = AppAdapter(
             apps,
@@ -77,12 +84,17 @@ class MainActivity : AppCompatActivity() {
                     showSystem = !showSystem
                 }
                 refreshDisplay()
-            }
+            },
+            onSelectionChanged = ::onSelectionChanged
         )
 
         val recycler = findViewById<RecyclerView>(R.id.recycler_apps)
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
+
+        checkBoxSelectAll.setOnCheckedChangeListener { _, _ ->
+            adapter.toggleAll()
+        }
 
         findViewById<Button>(R.id.btn_scan).setOnClickListener { scanApps() }
 
@@ -226,6 +238,17 @@ class MainActivity : AppCompatActivity() {
         if (showSystem) apps.addAll(systemAppsCache)
 
         adapter.notifyDataSetChanged()
+        onSelectionChanged()
+    }
+
+    private fun onSelectionChanged() {
+        // Снимаем слушателя, чтобы программная смена состояния не вызвала toggleAll по кругу
+        checkBoxSelectAll.setOnCheckedChangeListener(null)
+        checkBoxSelectAll.isChecked = adapter.allSelected
+        selectedCount.text = "${adapter.selectedCount} из ${apps.count { !it.isHeader }}"
+        checkBoxSelectAll.setOnCheckedChangeListener { _, _ ->
+            adapter.toggleAll()
+        }
     }
 
     private fun startClearing() {
@@ -237,15 +260,19 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             return
         }
-        if (clearList.isEmpty()) {
-            status.text = "Сначала нажмите «Сканировать»"
+
+        // Чистим только то, что отмечено галочками
+        val selected = adapter.getSelectedApps()
+        if (selected.isEmpty()) {
+            status.text = "Выберите приложения галочками"
+            Toast.makeText(this, "Отметьте хотя бы одно приложение", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Чистим только то, у чего кэш реально есть
-        clearList = clearList.filter { it.cacheBytes > 0 }
+        // Из выбранного чистим только то, у чего кэш реально есть
+        clearList = selected.filter { it.cacheBytes > 0 }
         if (clearList.isEmpty()) {
-            status.text = "Кэш не найден ни в одном приложении"
+            status.text = "У выбранных приложений нет кэша"
             return
         }
 
@@ -385,4 +412,3 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
-
