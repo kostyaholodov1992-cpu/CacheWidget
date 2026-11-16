@@ -3,6 +3,7 @@
     <color name="colorPrimary">#8AB4F8</color>
     <color name="colorOnPrimary">#0D1B2A</color>
 
+    <color name="status_bar_bg">#121212</color>  <!-- Тёмная строка состояния -->
     <color name="screen_bg">#121212</color>
     <color name="text_primary">#FFFFFF</color>
     <color name="status_text">#BDBDBD</color>
