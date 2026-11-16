@@ -31,13 +31,13 @@ import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
 import java.io.File
 import java.util.Locale
 
@@ -222,14 +222,14 @@ class MainActivity : AppCompatActivity() {
             setPadding(48, 24, 48, 8)
         }
 
-        val switches = mutableMapOf<String, SwitchCompat>()
+        val switches = mutableMapOf<String, MaterialSwitch>()
 
         for ((key, label) in options) {
-            val sw = SwitchCompat(this).apply {
+            val sw = MaterialSwitch(this).apply {
                 text = label
                 textSize = 16f
-                // Цвет текста НЕ задаём вручную — он берётся из темы
-                // и всегда читаем и в светлой, и в тёмной
+                // Цвета ползунка и текста берутся из темы:
+                // colorPrimary / colorOnSurface — без ручных цветов
                 isChecked = current == key
                 setOnCheckedChangeListener { _, isChecked ->
                     // Реагируем только на включение: программное выключение
@@ -249,8 +249,7 @@ class MainActivity : AppCompatActivity() {
                     prefs.edit().putString(KEY_THEME, key).apply()
                     AppCompatDelegate.setDefaultNightMode(mode)
 
-                    // Принудительно пересобираем экран в новой теме.
-                    // Диалог при этом закроется — это нормальное поведение
+                    // Диалог закроется — это нормальное поведение
                     recreate()
                 }
             }
@@ -258,7 +257,7 @@ class MainActivity : AppCompatActivity() {
             container.addView(sw)
         }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Тема")
             .setView(container)
             .setNegativeButton("Готово", null)
