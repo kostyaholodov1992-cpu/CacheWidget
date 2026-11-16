@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Основной акцент (заменит header_text и даст цвет кнопкам, иконкам) -->
-    <color name="colorPrimary">#8AB4F8</color>
-    <color name="colorOnPrimary">#1C1B1F</color>
-
-    <!-- Вторичный акцент (для менее важных элементов) -->
-    <color name="colorSecondary">#BDBDBD</color>
-    <color name="colorOnSecondary">#1C1B1F</color>
-
-    <!-- Фон поверхности (заменит screen_bg и header_bg) -->
-    <!-- В светлой теме будет белым, в тёмной — #121212 -->
+    <!-- Материал3: светлая палитра -->
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorSecondary">#5F6368</color>
+    <color name="colorOnSecondary">#FFFFFF</color>
     <color name="colorSurface">#FFFFFF</color>
     <color name="colorOnSurface">#1C1B1F</color>
-
-    <!-- Цвет ошибки/предупреждения (если понадобится) -->
     <color name="colorError">#B3261E</color>
     <color name="colorOnError">#FFFFFF</color>
 
-    <!-- Цвет иконки лаунчера (можно оставить как было) -->
+    <!-- Старые цвета (нужны коду и другим разметкам, не удалять) -->
+    <color name="screen_bg">#F5F5F5</color>
+    <color name="text_primary">#212121</color>
+    <color name="status_text">#757575</color>
+    <color name="header_bg">#F0F0F0</color>
+    <color name="header_text">#2196F3</color>
+    <color name="button_bg_base">#E0E0E0</color>
+    <color name="overlay_bg">#80000000</color>
     <color name="ic_launcher_background">#2196F3</color>
 </resources>
