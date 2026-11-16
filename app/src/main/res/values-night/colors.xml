@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="colorPrimary">#8AB4F8</color>
+    <color name="colorOnPrimary">#0D1B2A</color>
+
     <color name="screen_bg">#121212</color>
     <color name="text_primary">#FFFFFF</color>
     <color name="status_text">#BDBDBD</color>
