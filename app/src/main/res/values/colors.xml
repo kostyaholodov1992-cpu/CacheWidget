@@ -11,7 +11,7 @@
     <color name="colorOnError">#FFFFFF</color>
 
     <!-- Светлая строка состояния: тёмные иконки будут видны -->
-    <color name="status_bar_bg">#E3F2FD</color>
+    <color name="status_bar_bg">#BBDEFB</color>
 
     <!-- Старые цвета (нужны коду и другим разметкам, не удалять) -->
     <color name="screen_bg">#F5F5F5</color>
