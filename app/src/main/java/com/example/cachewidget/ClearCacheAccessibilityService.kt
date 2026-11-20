@@ -36,16 +36,16 @@ class ClearCacheAccessibilityService : AccessibilityService() {
             "storage" -> {
                 // Сначала пробуем «Очистить кэш» — на некоторых телефонах он есть прямо на первой странице
                 if (clickAny(root, listOf("Очистить кэш", "Clear cache"))) {
-                    Logger.log(this, "Сервис: нажал «Очистить кэш» на первой странице")
+                    Logger.log(this, Logger.Level.INFO, "Сервис: нажал «Очистить кэш» на первой странице")
                     finishApp()
                 } else if (clickAny(root, listOf("Хранилище и кэш", "Хранилище", "Storage & cache", "Storage"))) {
-                    Logger.log(this, "Сервис: нашёл «Хранилище и кэш», перехожу внутрь")
+                    Logger.log(this, Logger.Level.INFO, "Сервис: нашёл «Хранилище и кэш», перехожу внутрь")
                     currentTask = "clear"
                 }
             }
             "clear" -> {
                 if (clickAny(root, listOf("Очистить кэш", "Clear cache"))) {
-                    Logger.log(this, "Сервис: нажал «Очистить кэш» внутри хранилища")
+                    Logger.log(this, Logger.Level.INFO, "Сервис: нажал «Очистить кэш» внутри хранилища")
                     finishApp()
                 }
             }
@@ -67,24 +67,26 @@ class ClearCacheAccessibilityService : AccessibilityService() {
         when (manualStage) {
             0 -> {
                 if (clickAny(root, listOf("Хранилище и кэш", "Хранилище", "Storage & cache", "Storage"))) {
-                    Logger.log(this, "Сервис: нашёл «Хранилище и кэш», перехожу внутрь")
+                    Logger.log(this, Logger.Level.INFO, "Сервис: нашёл «Хранилище и кэш», перехожу внутрь")
                     manualStage = 1
                 }
             }
             1 -> {
                 if (clickAny(root, listOf("Очистить кэш", "Clear cache"))) {
-                    Logger.log(this, "Сервис: нажал «Очистить кэш», жду диалог")
+                    Logger.log(this, Logger.Level.INFO, "Сервис: нажал «Очистить кэш», жду диалог")
                     // Кэш очищен. Дожидаемся диалога (если появится), жмём «ОК».
                     handler.postDelayed({
                         try {
                             rootInActiveWindow?.let { r ->
                                 if (clickAny(r, listOf("ОК", "OK"))) {
-                                    Logger.log(this, "Сервис: подтвердил «ОК»")
+                                    Logger.log(this, Logger.Level.INFO, "Сервис: подтвердил «ОК»")
                                 }
                             }
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) {
+                            Logger.log(this, Logger.Level.ERROR, "Сервис: ошибка при подтверждении: ${e.message}")
+                        }
                         lastClearAt = System.currentTimeMillis()
-                        Logger.log(this, "Сервис: кэш очищен, возвращаюсь назад")
+                        Logger.log(this, Logger.Level.INFO, "Сервис: кэш очищен, возвращаюсь назад")
                         manualStage = 0
                         // Возвращаемся на страницу приложения, чтобы пользователь
                         // мог сразу нажать «Назад» и открыть следующее
@@ -100,7 +102,7 @@ class ClearCacheAccessibilityService : AccessibilityService() {
         handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 500)
         handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 1100)
         handler.postDelayed({
-            Logger.log(this, "Сервис: приложение обработано, передаю управление в Activity")
+            Logger.log(this, Logger.Level.INFO, "Сервис: приложение обработано, передаю управление в Activity")
             sendBroadcast(Intent(ACTION_CLEAR_NEXT).setPackage(packageName))
         }, 1600)
     }
