@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
 
         private const val PREFS_NAME = "settings"
         private const val KEY_THEME = "theme_mode"
+        private const val KEY_MANUAL = "manual_mode"
         private const val THEME_DARK = "dark"
         private const val THEME_LIGHT = "light"
         private const val THEME_AUTO = "auto"
@@ -100,6 +101,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         applySavedTheme()
+
+        // Восстанавливаем ручной режим из настроек
+        ClearCacheAccessibilityService.manualMode = prefs.getBoolean(KEY_MANUAL, false)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         installCrashLogger()
@@ -169,6 +174,10 @@ class MainActivity : AppCompatActivity() {
         val popup = PopupMenu(this, anchor)
         popup.menu.add(Menu.NONE, 1, Menu.NONE, "Настройки доступности")
         popup.menu.add(Menu.NONE, 2, Menu.NONE, "Тема")
+        popup.menu.add(
+            Menu.NONE, 3, Menu.NONE,
+            if (ClearCacheAccessibilityService.manualMode) "Ручная очистка: вкл ✓" else "Ручная очистка: выкл"
+        )
 
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -185,6 +194,23 @@ class MainActivity : AppCompatActivity() {
                 }
                 2 -> {
                     showThemePanel()
+                    true
+                }
+                3 -> {
+                    val newMode = !ClearCacheAccessibilityService.manualMode
+                    if (newMode && !isAccessibilityEnabled()) {
+                        Toast.makeText(this, "Сначала включите службу в настройках", Toast.LENGTH_LONG).show()
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        return@setOnMenuItemClickListener false
+                    }
+                    ClearCacheAccessibilityService.manualMode = newMode
+                    prefs.edit().putBoolean(KEY_MANUAL, newMode).apply()
+                    Toast.makeText(
+                        this,
+                        if (newMode) "Ручной режим включён: открой любое приложение в настройках — кэш очистится сам"
+                        else "Ручной режим выключен",
+                        Toast.LENGTH_LONG
+                    ).show()
                     true
                 }
                 else -> false
@@ -521,6 +547,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun doStartClearing() {
+        // Автоматическая очистка не должна работать вместе с ручным режимом
+        ClearCacheAccessibilityService.manualMode = false
+        prefs.edit().putBoolean(KEY_MANUAL, false).apply()
+
         clearIndex = 0
         token = 0
         advancedToken = -1
