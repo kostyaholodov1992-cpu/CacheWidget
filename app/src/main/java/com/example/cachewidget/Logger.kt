@@ -19,7 +19,13 @@ object Logger {
 
     private const val MAX_LINES = 500   // держим журнал коротким
 
-    fun log(context: Context?, level: Level = Level.INFO, message: String) {
+    /** Короткая форма: без уровня — записывается как INFO */
+    fun log(context: Context?, message: String) {
+        log(context, Level.INFO, message)
+    }
+
+    /** Полная форма: с уровнем важности */
+    fun log(context: Context?, level: Level, message: String) {
         if (context == null) return
         try {
             val time = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date())
