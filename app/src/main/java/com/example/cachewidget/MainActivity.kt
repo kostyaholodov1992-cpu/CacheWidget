@@ -168,6 +168,50 @@ class MainActivity : AppCompatActivity() {
 
         updateStorageStats()
         updateCacheStats()
+
+        // === НОВОЕ ===: если запуск с плитки — сразу начинаем очистку
+        handleAutoStart(intent)
+    }
+
+    // === НОВОЕ ===: приём команды, когда MainActivity уже открыта (работает благодаря singleTop)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleAutoStart(intent)
+    }
+
+    // === НОВОЕ ===
+    private fun handleAutoStart(intent: Intent?) {
+        if (intent?.getBooleanExtra("auto_start_clear", false) == true) {
+            intent.removeExtra("auto_start_clear") // чтобы не зациклилось на каждом onResume
+            startAutoClear()
+        }
+    }
+
+    // === НОВОЕ ===: очистка всего найденного кэша без ручного выбора
+    private fun startAutoClear() {
+        // Не мешаем уже идущей очистке
+        if (ClearCacheAccessibilityService.isRunning) return
+
+        // Сначала сканируем, чтобы наполнить списки
+        scanApps()
+
+        // Берём всё найденное: и пользовательские, и системные
+        val all = (userAppsCache + systemAppsCache).filter { it.cacheBytes > 0 }
+        if (all.isEmpty()) {
+            findViewById<TextView>(R.id.tv_status).text = "Кэша для очистки не найдено"
+            Toast.makeText(this, "Кэша для очистки не найдено", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Отмечаем всё в адаптере, чтобы UI выглядел согласованно
+        if (!adapter.allSelected) {
+            adapter.toggleAll()
+            onSelectionChanged()
+        }
+
+        // Дальше — обычный путь очистки со всеми проверками разрешений
+        startClearing()
     }
 
     // --- Меню и тема ---
@@ -321,6 +365,12 @@ class MainActivity : AppCompatActivity() {
             pendingClear = false
             Toast.makeText(this, "Разрешение получено, начинаю очистку", Toast.LENGTH_SHORT).show()
             doStartClearing()
+        }
+
+        // === НОВОЕ ===: если активити была жива и getIntent ещё содержит команду — обрабатываем
+        if (intent?.getBooleanExtra("auto_start_clear", false) == true) {
+            intent.removeExtra("auto_start_clear")
+            startAutoClear()
         }
     }
 
