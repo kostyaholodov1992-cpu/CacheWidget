@@ -29,3 +29,44 @@ object Logger {
             val old = if (file.exists()) file.readText() else ""
             var lines = old.lines()
             if (lines.isNotEmpty() && lines.last().isBlank()) lines = lines.dropLast(1)
+            if (lines.size > MAX_LINES) lines = lines.takeLast(MAX_LINES)
+
+            file.writeText(lines.joinToString("\n") + "\n[$time] ${level.tag} $message")
+        } catch (_: Exception) {
+            // Журнал не должен ронять приложение
+        }
+    }
+
+    /** Диалог с журналом: просмотр, отправка, очистка */
+    fun show(context: Context) {
+        try {
+            val file = File(context.filesDir, "app_log.txt")
+            val text = if (file.exists()) file.readText() else "Журнал пуст"
+
+            android.app.AlertDialog.Builder(context)
+                .setTitle("Журнал работы")
+                .setMessage(text.takeLast(6000))
+                .setPositiveButton("Поделиться") { _, _ -> share(context, text) }
+                .setNeutralButton("Очистить") { _, _ ->
+                    try {
+                        file.delete()
+                        Toast.makeText(context, "Журнал очищен", Toast.LENGTH_SHORT).show()
+                    } catch (_: Exception) {}
+                }
+                .setNegativeButton("Закрыть", null)
+                .show()
+        } catch (_: Exception) {}
+    }
+
+    /** Отправка журнала в любое приложение: Telegram, почта, заметки и т.д. */
+    private fun share(context: Context, text: String) {
+        try {
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "Журнал Cache Widget")
+                putExtra(Intent.EXTRA_TEXT, text)
+            }
+            context.startActivity(Intent.createChooser(send, "Отправить журнал"))
+        } catch (_: Exception) {}
+    }
+}
