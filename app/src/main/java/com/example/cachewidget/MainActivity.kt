@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         showLastErrorIfAny()
         supportActionBar?.hide()
 
-        Logger.log(this, "=== Запуск приложения ===")
+        Logger.log(this, Logger.Level.INFO, "=== Запуск приложения ===")
 
         checkBoxSelectAll = findViewById(R.id.checkBoxSelectAll)
         selectedCount = findViewById(R.id.selectedCount)
@@ -208,7 +208,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     ClearCacheAccessibilityService.manualMode = newMode
                     prefs.edit().putBoolean(KEY_MANUAL, newMode).apply()
-                    Logger.log(this, "Ручной режим переключён: $newMode")
+                    Logger.log(this, Logger.Level.INFO, "Ручной режим переключён: $newMode")
                     Toast.makeText(
                         this,
                         if (newMode) "Ручной режим включён: открой любое приложение в настройках — кэш очистится сам"
@@ -281,7 +281,7 @@ class MainActivity : AppCompatActivity() {
                         else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
                     }
                     prefs.edit().putString(KEY_THEME, key).apply()
-                    Logger.log(this@MainActivity, "Тема изменена: $key")
+                    Logger.log(this@MainActivity, Logger.Level.INFO, "Тема изменена: $key")
                     AppCompatDelegate.setDefaultNightMode(mode)
 
                     // Диалог закроется — это нормальное поведение
@@ -303,6 +303,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Logger.log(
             this,
+            Logger.Level.INFO,
             "onResume: usage=${hasUsageAccess()}, a11y=${isAccessibilityEnabled()}, overlay=${Settings.canDrawOverlays(this)}"
         )
         if (pendingClear && Settings.canDrawOverlays(this)) {
@@ -417,7 +418,7 @@ class MainActivity : AppCompatActivity() {
         val status = findViewById<TextView>(R.id.tv_status)
 
         if (!hasUsageAccess()) {
-            Logger.log(this, "Скан отменён: нет доступа к данным об использовании")
+            Logger.log(this, Logger.Level.WARN, "Скан отменён: нет доступа к данным об использовании")
             status.text = "Включите «Доступ к данным об использовании»"
             Toast.makeText(this, "Разрешите приложению доступ к данным об использовании", Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
@@ -425,7 +426,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         status.text = "Сканирую..."
-        Logger.log(this, "Скан начат")
+        Logger.log(this, Logger.Level.INFO, "=== Скан ===")
+        Logger.log(this, Logger.Level.INFO, "Скан начат")
 
         val forceUserPackages = setOf(
             "com.android.chrome",              // Chrome
@@ -483,8 +485,13 @@ class MainActivity : AppCompatActivity() {
         updateCacheStats()
 
         val withCache = clearList.size
+        val totalCacheBytes = clearList.sumOf { it.cacheBytes }
         status.text = "Приложений с кэшем от 1 МБ: $withCache (установленных ${userAppsCache.size}, системных ${systemAppsCache.size}). Мелких пропущено: $skippedSmall"
-        Logger.log(this, "Скан завершён: найдено $withCache, пропущено мелких $skippedSmall")
+        Logger.log(
+            this,
+            Logger.Level.INFO,
+            "Скан завершён: найдено $withCache, суммарный кэш ${formatGb(totalCacheBytes)}, пропущено мелких $skippedSmall"
+        )
     }
 
     private fun refreshDisplay() {
@@ -526,7 +533,7 @@ class MainActivity : AppCompatActivity() {
         val status = findViewById<TextView>(R.id.tv_status)
 
         if (!isAccessibilityEnabled()) {
-            Logger.log(this, "Очистка отменена: нет службы доступности")
+            Logger.log(this, Logger.Level.WARN, "Очистка отменена: нет службы доступности")
             status.text = "Включите службу специальных возможностей"
             Toast.makeText(this, "Сначала включите службу в настройках", Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -536,7 +543,7 @@ class MainActivity : AppCompatActivity() {
         // Чистим только то, что отмечено галочками
         val selected = adapter.getSelectedApps()
         if (selected.isEmpty()) {
-            Logger.log(this, "Очистка отменена: не выбрано ни одного приложения")
+            Logger.log(this, Logger.Level.WARN, "Очистка отменена: не выбрано ни одного приложения")
             status.text = "Выберите приложения галочками"
             Toast.makeText(this, "Отметьте хотя бы одно приложение", Toast.LENGTH_SHORT).show()
             return
@@ -545,13 +552,13 @@ class MainActivity : AppCompatActivity() {
         // Из выбранного чистим только то, у чего кэш реально есть
         clearList = selected.filter { it.cacheBytes > 0 }
         if (clearList.isEmpty()) {
-            Logger.log(this, "Очистка отменена: у выбранных нет кэша")
+            Logger.log(this, Logger.Level.WARN, "Очистка отменена: у выбранных нет кэша")
             status.text = "У выбранных приложений нет кэша"
             return
         }
 
         if (!Settings.canDrawOverlays(this)) {
-            Logger.log(this, "Очистка отложена: нет разрешения поверх окон")
+            Logger.log(this, Logger.Level.WARN, "Очистка отложена: нет разрешения поверх окон")
             pendingClear = true
             status.text = "Дайте разрешение «Поверх других окон» и вернитесь"
             Toast.makeText(this, "Включите тумблер и нажмите «Назад» — очистка начнётся сама", Toast.LENGTH_LONG).show()
@@ -575,7 +582,15 @@ class MainActivity : AppCompatActivity() {
         token = 0
         advancedToken = -1
         ClearCacheAccessibilityService.isRunning = true
-        Logger.log(this, "Очистка начата: ${clearList.size} приложений")
+
+        val totalBytes = clearList.sumOf { it.cacheBytes }
+        Logger.log(this, Logger.Level.INFO, "=== Очистка ===")
+        Logger.log(
+            this,
+            Logger.Level.INFO,
+            "Очистка начата: ${clearList.size} приложений, примерно ${formatGb(totalBytes)} кэша"
+        )
+
         showOverlay()
         updateOverlayText("Чищу 1 из ${clearList.size}: ${clearList[0].name}")
         openNextApp()
@@ -589,7 +604,7 @@ class MainActivity : AppCompatActivity() {
         pendingClear = false
         hideOverlay()
         if (!silent) {
-            Logger.log(this, "Очистка остановлена")
+            Logger.log(this, Logger.Level.WARN, "Очистка остановлена пользователем")
             findViewById<TextView>(R.id.tv_status).text = "Очистка остановлена"
             Toast.makeText(this, "Очистка остановлена", Toast.LENGTH_SHORT).show()
         }
@@ -642,7 +657,7 @@ class MainActivity : AppCompatActivity() {
         try {
             windowManager.addView(overlayView, params)
         } catch (e: Exception) {
-            Logger.log(this, "Ошибка показа шторки: ${e.message}")
+            Logger.log(this, Logger.Level.ERROR, "Ошибка показа шторки: ${e.message}")
             overlayView = null
             overlayText = null
             Toast.makeText(this, "Не удалось показать шторку: ${e.message}", Toast.LENGTH_LONG).show()
@@ -666,7 +681,7 @@ class MainActivity : AppCompatActivity() {
         val current = token
         val app = clearList[clearIndex]
         ClearCacheAccessibilityService.currentTask = "storage"
-        Logger.log(this, "Открываю ${app.name} (${app.packageName})")
+        Logger.log(this, Logger.Level.INFO, "Открываю ${app.name} (${app.packageName})")
 
         handler.postDelayed({
             if (current == token && current != advancedToken) advance()
@@ -681,17 +696,36 @@ class MainActivity : AppCompatActivity() {
         if (!ClearCacheAccessibilityService.isRunning) return
         if (token == advancedToken) return
         advancedToken = token
+
+        // Статистика по только что обработанному приложению
+        if (clearIndex < clearList.size) {
+            val processed = clearList[clearIndex]
+            Logger.log(
+                this,
+                Logger.Level.INFO,
+                "Обработано: ${processed.name} — примерно ${formatGb(processed.cacheBytes)}"
+            )
+        }
+
         clearIndex++
 
         if (clearIndex >= clearList.size) {
             val cleaned = clearList.size
+            val totalBytes = clearList.sumOf { it.cacheBytes }
             stopClearing(silent = true)
-            Logger.log(this, "Готово! Очищено приложений: $cleaned")
-            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: $cleaned"
+
+            Logger.log(this, Logger.Level.INFO, "=== Очистка завершена ===")
+            Logger.log(
+                this,
+                Logger.Level.INFO,
+                "Сводка: обработано $cleaned приложений, освобождено примерно ${formatGb(totalBytes)}"
+            )
+
+            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: $cleaned (${formatGb(totalBytes)})"
             Toast.makeText(this, "Кэш очищен, обновляю список", Toast.LENGTH_LONG).show()
             scanApps()
         } else {
-            Logger.log(this, "Переход к ${clearList[clearIndex].name} (${clearIndex + 1}/${clearList.size})")
+            Logger.log(this, Logger.Level.INFO, "Переход к ${clearList[clearIndex].name} (${clearIndex + 1}/${clearList.size})")
             updateOverlayText("Чищу ${clearIndex + 1} из ${clearList.size}: ${clearList[clearIndex].name}")
             openNextApp()
         }
