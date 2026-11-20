@@ -61,8 +61,8 @@ class ClearCacheAccessibilityService : AccessibilityService() {
         val pkg = root.packageName ?: return
         if (!pkg.contains("settings")) return
 
-        // Не жмём повторно в течение 4 секунд после только что сделанной очистки
-        if (System.currentTimeMillis() - lastClearAt < 4000) return
+        // Не жмём повторно в течение 3 секунд после только что сделанной очистки
+        if (System.currentTimeMillis() - lastClearAt < 3000) return
 
         when (manualStage) {
             0 -> {
@@ -74,7 +74,7 @@ class ClearCacheAccessibilityService : AccessibilityService() {
             1 -> {
                 if (clickAny(root, listOf("Очистить кэш", "Clear cache"))) {
                     Logger.log(this, Logger.Level.INFO, "Сервис: нажал «Очистить кэш», жду диалог")
-                    // Кэш очищен. Дожидаемся диалога (если появится), жмём «ОК».
+                    // Дожидаемся диалога (если появится) и жмём «ОК»
                     handler.postDelayed({
                         try {
                             rootInActiveWindow?.let { r ->
@@ -88,10 +88,9 @@ class ClearCacheAccessibilityService : AccessibilityService() {
                         lastClearAt = System.currentTimeMillis()
                         Logger.log(this, Logger.Level.INFO, "Сервис: кэш очищен, возвращаюсь назад")
                         manualStage = 0
-                        // Возвращаемся на страницу приложения, чтобы пользователь
-                        // мог сразу нажать «Назад» и открыть следующее
-                        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 400)
-                    }, 1200)
+                        // Возвращаемся на страницу приложения
+                        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 250)
+                    }, 700)
                 }
             }
         }
@@ -99,12 +98,12 @@ class ClearCacheAccessibilityService : AccessibilityService() {
 
     private fun finishApp() {
         currentTask = null
-        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 500)
-        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 1100)
+        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 300)
+        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 700)
         handler.postDelayed({
             Logger.log(this, Logger.Level.INFO, "Сервис: приложение обработано, передаю управление в Activity")
             sendBroadcast(Intent(ACTION_CLEAR_NEXT).setPackage(packageName))
-        }, 1600)
+        }, 1100)
     }
 
     private fun clickAny(root: AccessibilityNodeInfo, texts: List<String>): Boolean {
