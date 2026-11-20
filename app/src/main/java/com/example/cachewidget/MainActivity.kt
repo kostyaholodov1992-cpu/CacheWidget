@@ -694,9 +694,10 @@ class MainActivity : AppCompatActivity() {
         ClearCacheAccessibilityService.currentTask = "storage"
         Logger.log(this, Logger.Level.INFO, "Открываю ${app.name} (${app.packageName})")
 
+        // Таймер-страховка: если сервис не сработал за 5 секунд — переходим дальше
         handler.postDelayed({
             if (current == token && current != advancedToken) advance()
-        }, 8000)
+        }, 5000)
 
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
             .setData(Uri.parse("package:${app.packageName}"))
