@@ -174,13 +174,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun showMenu(anchor: android.view.View) {
         val popup = PopupMenu(this, anchor)
-        popup.menu.add(Menu.NONE, 1, Menu.NONE, "Настройки доступности")
-        popup.menu.add(Menu.NONE, 2, Menu.NONE, "Тема")
-        popup.menu.add(
-            Menu.NONE, 3, Menu.NONE,
-            if (ClearCacheAccessibilityService.manualMode) "Ручная очистка: вкл ✓" else "Ручная очистка: выкл"
+
+        // Список пунктов: (id, текст)
+        val items = listOf(
+            Pair(1, "Настройки доступности"),
+            Pair(2, "Тема"),
+            Pair(3, if (ClearCacheAccessibilityService.manualMode) "Ручная очистка: вкл ✓" else "Ручная очистка: выкл"),
+            Pair(4, "Журнал работы")
         )
-        popup.menu.add(Menu.NONE, 4, Menu.NONE, "Журнал работы")
+
+        // Сортировка по длине текста: от коротких пунктов к длинным
+        val sortedItems = items.sortedWith(
+            compareBy<Pair<Int, String>> { it.second.length }.thenBy { it.second }
+        )
+
+        // Добавляем пункты в меню уже отсортированными
+        for ((id, text) in sortedItems) {
+            popup.menu.add(Menu.NONE, id, Menu.NONE, text)
+        }
 
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
