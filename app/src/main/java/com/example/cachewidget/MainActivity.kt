@@ -1,5 +1,6 @@
 package com.example.cachewidget
 
+import android.animation.ObjectAnimator
 import android.app.AppOpsManager
 import android.app.usage.StorageStatsManager
 import android.content.BroadcastReceiver
@@ -75,6 +76,12 @@ class MainActivity : AppCompatActivity() {
 
     private var overlayView: LinearLayout? = null
     private var overlayText: TextView? = null
+
+    // Элементы анимированного оверлея
+    private var overlayProgressBar: ProgressBar? = null
+    private var overlayProgressText: TextView? = null
+    private var overlayStopButton: Button? = null
+    private var stopPulse: ObjectAnimator? = null
 
     private lateinit var prefs: SharedPreferences
 
@@ -169,18 +176,17 @@ class MainActivity : AppCompatActivity() {
         updateStorageStats()
         updateCacheStats()
 
-        // === НОВОЕ ===: если запуск с плитки — сразу начинаем очистку
+        // Если запуск с плитки — сразу начинаем очистку
         handleAutoStart(intent)
     }
 
-    // === НОВОЕ ===: приём команды, когда MainActivity уже открыта (работает благодаря singleTop)
+    // Приём команды, когда MainActivity уже открыта (работает благодаря singleTop)
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleAutoStart(intent)
     }
 
-    // === НОВОЕ ===
     private fun handleAutoStart(intent: Intent?) {
         if (intent?.getBooleanExtra("auto_start_clear", false) == true) {
             intent.removeExtra("auto_start_clear") // чтобы не зациклилось на каждом onResume
@@ -188,7 +194,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // === НОВОЕ ===: очистка всего найденного кэша без ручного выбора
+    // Очистка всего найденного кэша без ручного выбора
     private fun startAutoClear() {
         // Не мешаем уже идущей очистке
         if (ClearCacheAccessibilityService.isRunning) return
@@ -367,7 +373,7 @@ class MainActivity : AppCompatActivity() {
             doStartClearing()
         }
 
-        // === НОВОЕ ===: если активити была жива и getIntent ещё содержит команду — обрабатываем
+        // Если активити была жива и getIntent ещё содержит команду — обрабатываем
         if (intent?.getBooleanExtra("auto_start_clear", false) == true) {
             intent.removeExtra("auto_start_clear")
             startAutoClear()
@@ -689,52 +695,128 @@ class MainActivity : AppCompatActivity() {
         )
         params.gravity = Gravity.CENTER
 
+        // Полоса прогресса
+        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(96, 0, 96, 0) }
+            max = 100
+            progress = 0
+        }
+
+        // Текст текущего приложения
         val progressText = TextView(this).apply {
             textSize = 18f
             gravity = Gravity.CENTER
             setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
-            setPadding(0, 32, 0, 0)
+            setPadding(0, 40, 0, 0)
+        }
+
+        // Счётчик «Готово: X из Y»
+        val progressInfo = TextView(this).apply {
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+            alpha = 0.7f
+            setPadding(0, 16, 0, 0)
         }
 
         val stopButton = Button(this).apply {
             text = "Стоп"
             setOnClickListener { stopClearing() }
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 64, 0, 0) }
         }
 
         overlayView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.overlay_bg))
-            addView(ProgressBar(this@MainActivity))
+            addView(progressBar)
             addView(progressText)
+            addView(progressInfo)
             addView(stopButton)
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+
+            // Плавное появление всей панели
+            alpha = 0f
+            animate()
+                .alpha(1f)
+                .setDuration(350)
+                .start()
         }
         overlayText = progressText
+        overlayProgressBar = progressBar
+        overlayProgressText = progressInfo
+        overlayStopButton = stopButton
+
+        // Пульсация кнопки «Стоп»: мягко дышит, чтобы её было заметно
+        stopPulse = ObjectAnimator.ofFloat(stopButton, android.view.View.ALPHA, 1f, 0.45f).apply {
+            duration = 900
+            repeatCount = ObjectAnimator.INFINITE
+            repeatMode = ObjectAnimator.REVERSE
+            start()
+        }
 
         try {
             windowManager.addView(overlayView, params)
         } catch (e: Exception) {
+            stopPulse?.cancel()
+            stopPulse = null
             Logger.log(this, Logger.Level.ERROR, "Ошибка показа шторки: ${e.message}")
             overlayView = null
             overlayText = null
+            overlayProgressBar = null
+            overlayProgressText = null
+            overlayStopButton = null
             Toast.makeText(this, "Не удалось показать шторку: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun updateOverlayText(message: String) {
         overlayText?.text = message
+
+        // Мягкое «мигание» текста при смене приложения
+        overlayText?.let { tv ->
+            tv.alpha = 0.2f
+            tv.animate().alpha(1f).setDuration(250).start()
+        }
+
+        // Обновляем полосу прогресса и счётчик
+        if (clearList.isNotEmpty()) {
+            val done = clearIndex.coerceAtLeast(0)
+            val percent = (done * 100 / clearList.size)
+            overlayProgressBar?.progress = percent
+            overlayProgressText?.text = "Готово: $done из ${clearList.size} ($percent%)"
+        }
     }
 
     private fun hideOverlay() {
-        try {
-            overlayView?.let { windowManager.removeView(it) }
-        } catch (_: Exception) {}
+        stopPulse?.cancel()
+        stopPulse = null
+
+        val view = overlayView
+        if (view != null) {
+            // Плавное затухание перед удалением
+            view.animate()
+                .alpha(0f)
+                .setDuration(250)
+                .withEndAction {
+                    try { windowManager.removeView(view) } catch (_: Exception) {}
+                }
+                .start()
+        }
         overlayView = null
         overlayText = null
+        overlayProgressBar = null
+        overlayProgressText = null
+        overlayStopButton = null
     }
 
     private fun openNextApp() {
