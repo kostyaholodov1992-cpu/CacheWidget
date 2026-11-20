@@ -36,13 +36,16 @@ class ClearCacheAccessibilityService : AccessibilityService() {
             "storage" -> {
                 // Сначала пробуем «Очистить кэш» — на некоторых телефонах он есть прямо на первой странице
                 if (clickAny(root, listOf("Очистить кэш", "Clear cache"))) {
+                    Logger.log(this, "Сервис: нажал «Очистить кэш» на первой странице")
                     finishApp()
                 } else if (clickAny(root, listOf("Хранилище и кэш", "Хранилище", "Storage & cache", "Storage"))) {
+                    Logger.log(this, "Сервис: нашёл «Хранилище и кэш», перехожу внутрь")
                     currentTask = "clear"
                 }
             }
             "clear" -> {
                 if (clickAny(root, listOf("Очистить кэш", "Clear cache"))) {
+                    Logger.log(this, "Сервис: нажал «Очистить кэш» внутри хранилища")
                     finishApp()
                 }
             }
@@ -64,19 +67,24 @@ class ClearCacheAccessibilityService : AccessibilityService() {
         when (manualStage) {
             0 -> {
                 if (clickAny(root, listOf("Хранилище и кэш", "Хранилище", "Storage & cache", "Storage"))) {
+                    Logger.log(this, "Сервис: нашёл «Хранилище и кэш», перехожу внутрь")
                     manualStage = 1
                 }
             }
             1 -> {
                 if (clickAny(root, listOf("Очистить кэш", "Clear cache"))) {
+                    Logger.log(this, "Сервис: нажал «Очистить кэш», жду диалог")
                     // Кэш очищен. Дожидаемся диалога (если появится), жмём «ОК».
                     handler.postDelayed({
                         try {
                             rootInActiveWindow?.let { r ->
-                                clickAny(r, listOf("ОК", "OK"))
+                                if (clickAny(r, listOf("ОК", "OK"))) {
+                                    Logger.log(this, "Сервис: подтвердил «ОК»")
+                                }
                             }
                         } catch (_: Exception) {}
                         lastClearAt = System.currentTimeMillis()
+                        Logger.log(this, "Сервис: кэш очищен, возвращаюсь назад")
                         manualStage = 0
                         // Возвращаемся на страницу приложения, чтобы пользователь
                         // мог сразу нажать «Назад» и открыть следующее
@@ -92,6 +100,7 @@ class ClearCacheAccessibilityService : AccessibilityService() {
         handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 500)
         handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, 1100)
         handler.postDelayed({
+            Logger.log(this, "Сервис: приложение обработано, передаю управление в Activity")
             sendBroadcast(Intent(ACTION_CLEAR_NEXT).setPackage(packageName))
         }, 1600)
     }
