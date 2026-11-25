@@ -3,6 +3,7 @@ package com.example.cachewidget
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,7 +50,7 @@ object Logger {
             val file = File(context.filesDir, "app_log.txt")
             val text = if (file.exists()) file.readText() else "Журнал пуст"
 
-            android.app.AlertDialog.Builder(context)
+            MaterialAlertDialogBuilder(context)
                 .setMessage("\n" + text.takeLast(6000))
                 .setPositiveButton("Поделиться") { _, _ -> share(context, text) }
                 .setNeutralButton("Очистить") { _, _ ->
