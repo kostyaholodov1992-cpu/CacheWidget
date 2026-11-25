@@ -19,6 +19,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.StatFs
+import android.os.storage.StorageManager
 import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -464,7 +465,9 @@ class MainActivity : AppCompatActivity() {
     private fun getRealCacheSize(app: AppInfo): Long {
         return try {
             val ssm = getSystemService(StorageStatsManager::class.java)
-            val stats = ssm.queryStatsForUid(app.storageUuid, app.uid)
+            // Если UUID хранилища не сохранился — измеряем основное внутреннее
+            val uuid = app.storageUuid ?: StorageManager.UUID_DEFAULT
+            val stats = ssm.queryStatsForUid(uuid, app.uid)
             stats.cacheBytes
         } catch (e: Exception) {
             Logger.log(this, Logger.Level.WARN, "Замер не удался для ${app.name}: ${e.message}")
