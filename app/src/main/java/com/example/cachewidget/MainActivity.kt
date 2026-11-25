@@ -49,6 +49,9 @@ class MainActivity : AppCompatActivity() {
         // Минимальный размер кэша, чтобы приложение попало в список (1 МБ)
         private const val MIN_CACHE_BYTES: Long = 1024L * 1024L
 
+        // Пауза перед замером кэша: системе нужно время обновить статистику хранилища
+        private const val MEASURE_DELAY_MS = 600L
+
         private const val PREFS_NAME = "settings"
         private const val KEY_THEME = "theme_mode"
         private const val KEY_MANUAL = "manual_mode"
@@ -72,6 +75,9 @@ class MainActivity : AppCompatActivity() {
     private var token = 0
     private var advancedToken = -1
     private val handler = Handler(Looper.getMainLooper())
+
+    // Суммарно реально освобождено за текущую очистку (по замерам до/после)
+    private var freedTotal = 0L
 
     private var pendingClear = false
 
@@ -449,6 +455,23 @@ class MainActivity : AppCompatActivity() {
         return String.format(Locale.US, "%.2f GB", gb)
     }
 
+    // --- Реальный замер кэша ---
+
+    /**
+     * Текущий (на момент вызова) размер кэша приложения по его UID.
+     * Возвращает 0, если замер не удался.
+     */
+    private fun getRealCacheSize(app: AppInfo): Long {
+        return try {
+            val ssm = getSystemService(StorageStatsManager::class.java)
+            val stats = ssm.queryStatsForUid(app.storageUuid, app.uid)
+            stats.cacheBytes
+        } catch (e: Exception) {
+            Logger.log(this, Logger.Level.WARN, "Замер не удался для ${app.name}: ${e.message}")
+            0L
+        }
+    }
+
     // --- Проверки разрешений ---
 
     private fun hasUsageAccess(): Boolean {
@@ -524,7 +547,13 @@ class MainActivity : AppCompatActivity() {
                 continue
             }
 
-            val item = AppInfo(name, info.packageName, cache, icon = icon)
+            // Запоминаем uid и хранилище — по ним будем делать повторный замер после очистки
+            val item = AppInfo(
+                name, info.packageName, cache,
+                icon = icon,
+                uid = info.uid,
+                storageUuid = info.storageUuid
+            )
 
             if (forceUserPackages.contains(info.packageName)) {
                 userAppsCache.add(item)
@@ -644,6 +673,7 @@ class MainActivity : AppCompatActivity() {
         clearIndex = 0
         token = 0
         advancedToken = -1
+        freedTotal = 0
         ClearCacheAccessibilityService.isRunning = true
 
         val totalBytes = clearList.sumOf { it.cacheBytes }
@@ -668,6 +698,9 @@ class MainActivity : AppCompatActivity() {
         hideOverlay()
         if (!silent) {
             Logger.log(this, Logger.Level.WARN, "Очистка остановлена пользователем")
+            if (freedTotal > 0) {
+                Logger.log(this, Logger.Level.INFO, "До остановки успели освободить: ${formatGb(freedTotal)}")
+            }
             findViewById<TextView>(R.id.tv_status).text = "Очистка остановлена"
             Toast.makeText(this, "Очистка остановлена", Toast.LENGTH_SHORT).show()
         }
@@ -709,7 +742,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 40, 0, 0)
         }
 
-        // Счётчик «Готово: X из Y»
+        // Счётчик «Готово: X из Y» + сколько уже освободили
         val progressInfo = TextView(this).apply {
             textSize = 14f
             gravity = Gravity.CENTER
@@ -784,12 +817,12 @@ class MainActivity : AppCompatActivity() {
             tv.animate().alpha(1f).setDuration(250).start()
         }
 
-        // Обновляем полосу прогресса и счётчик
+        // Обновляем полосу прогресса и счётчик с реально освобождённым объёмом
         if (clearList.isNotEmpty()) {
             val done = clearIndex.coerceAtLeast(0)
             val percent = (done * 100 / clearList.size)
             overlayProgressBar?.progress = percent
-            overlayProgressText?.text = "Готово: $done из ${clearList.size} ($percent%)"
+            overlayProgressText?.text = "Готово: $done из ${clearList.size} ($percent%) · Освобождено: ${formatGb(freedTotal)}"
         }
     }
 
@@ -832,18 +865,35 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    /**
+     * Сервис сообщил, что приложение обработано.
+     * Делаем паузу MEASURE_DELAY_MS, чтобы система обновила статистику,
+     * и только потом замеряем кэш и считаем разницу.
+     */
     private fun advance() {
         if (!ClearCacheAccessibilityService.isRunning) return
         if (token == advancedToken) return
         advancedToken = token
 
-        // Статистика по только что обработанному приложению
+        val current = token
+        handler.postDelayed({ finishCurrentApp(current) }, MEASURE_DELAY_MS)
+    }
+
+    private fun finishCurrentApp(currentToken: Int) {
+        if (currentToken != token) return
+        if (!ClearCacheAccessibilityService.isRunning) return
+
+        // Замер после очистки и подсчёт реальной разницы
         if (clearIndex < clearList.size) {
             val processed = clearList[clearIndex]
+            val after = getRealCacheSize(processed)
+            val freed = (processed.cacheBytes - after).coerceAtLeast(0)
+            freedTotal += freed
+
             Logger.log(
                 this,
                 Logger.Level.INFO,
-                "Обработано: ${processed.name} — примерно ${formatGb(processed.cacheBytes)}"
+                "Обработано: ${processed.name} | Было: ${formatGb(processed.cacheBytes)} | Стало: ${formatGb(after)} | Освобождено: ${formatGb(freed)}"
             )
         }
 
@@ -851,18 +901,20 @@ class MainActivity : AppCompatActivity() {
 
         if (clearIndex >= clearList.size) {
             val cleaned = clearList.size
-            val totalBytes = clearList.sumOf { it.cacheBytes }
             stopClearing(silent = true)
 
             Logger.log(this, Logger.Level.INFO, "=== Очистка завершена ===")
             Logger.log(
                 this,
                 Logger.Level.INFO,
-                "Сводка: обработано $cleaned приложений, освобождено примерно ${formatGb(totalBytes)}"
+                "Сводка: обработано $cleaned приложений, реально освобождено ${formatGb(freedTotal)}"
             )
 
-            findViewById<TextView>(R.id.tv_status).text = "Готово! Очищено приложений: $cleaned (${formatGb(totalBytes)})"
-            Toast.makeText(this, "Кэш очищен, обновляю список", Toast.LENGTH_LONG).show()
+            findViewById<TextView>(R.id.tv_status).text =
+                "Готово! Очищено приложений: $cleaned. Освобождено: ${formatGb(freedTotal)}"
+            Toast.makeText(this, "Освобождено: ${formatGb(freedTotal)}", Toast.LENGTH_LONG).show()
+
+            // Пересканируем, чтобы карточки и список показали актуальные цифры
             scanApps()
         } else {
             Logger.log(this, Logger.Level.INFO, "Переход к ${clearList[clearIndex].name} (${clearIndex + 1}/${clearList.size})")
