@@ -58,7 +58,6 @@ object Logger {
                         Toast.makeText(context, "Журнал очищен", Toast.LENGTH_SHORT).show()
                     } catch (_: Exception) {}
                 }
-                .setNegativeButton("Закрыть", null)
                 .show()
         } catch (_: Exception) {}
     }
