@@ -21,6 +21,7 @@ import android.os.Process
 import android.os.StatFs
 import android.provider.Settings
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -306,56 +307,56 @@ class MainActivity : AppCompatActivity() {
     private fun showThemePanel() {
         val current = currentThemeKey()
 
-        val options = listOf(
-            THEME_DARK to "Тёмная",
-            THEME_LIGHT to "Светлая",
-            THEME_AUTO to "Автоматическая"
+        // Разметка берётся из файла res/layout/dialog_theme.xml
+        val container = LayoutInflater.from(this).inflate(R.layout.dialog_theme, null)
+
+        val swDark = container.findViewById<MaterialSwitch>(R.id.sw_dark)
+        val swLight = container.findViewById<MaterialSwitch>(R.id.sw_light)
+        val swAuto = container.findViewById<MaterialSwitch>(R.id.sw_auto)
+        val btnDone = container.findViewById<Button>(R.id.btn_done)
+
+        // Начальные состояния ползунков
+        swDark.isChecked = current == THEME_DARK
+        swLight.isChecked = current == THEME_LIGHT
+        swAuto.isChecked = current == THEME_AUTO
+
+        // Пары «ползунок — ключ темы», чтобы логика не дублировалась
+        val switches = listOf(
+            swDark to THEME_DARK,
+            swLight to THEME_LIGHT,
+            swAuto to THEME_AUTO
         )
 
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(48, 48, 48, 8)
-        }
+        for ((sw, key) in switches) {
+            sw.setOnCheckedChangeListener { _, isChecked ->
+                // Реагируем только на включение: программное выключение
+                // соседних ползунков не должно зацикливать логику
+                if (!isChecked) return@setOnCheckedChangeListener
 
-        val switches = mutableMapOf<String, MaterialSwitch>()
-
-        for ((key, label) in options) {
-            val sw = MaterialSwitch(this).apply {
-                text = label
-                textSize = 16f
-                // Цвета ползунка и текста берутся из темы:
-                // colorPrimary / colorOnSurface — без ручных цветов
-                isChecked = current == key
-                setOnCheckedChangeListener { _, isChecked ->
-                    // Реагируем только на включение: программное выключение
-                    // соседних ползунков не должно зацикливать логику
-                    if (!isChecked) return@setOnCheckedChangeListener
-
-                    // Ползунки исключают друг друга
-                    for ((k, other) in switches) {
-                        if (k != key) other.isChecked = false
-                    }
-
-                    val mode = when (key) {
-                        THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-                        THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-                        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                    }
-                    prefs.edit().putString(KEY_THEME, key).apply()
-                    Logger.log(this@MainActivity, Logger.Level.INFO, "Тема изменена: $key")
-                    AppCompatDelegate.setDefaultNightMode(mode)
-
-                    // Диалог закроется — это нормальное поведение
-                    recreate()
+                // Ползунки исключают друг друга
+                for ((other, _) in switches) {
+                    if (other != sw) other.isChecked = false
                 }
+
+                val mode = when (key) {
+                    THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                    THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                    else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                }
+                prefs.edit().putString(KEY_THEME, key).apply()
+                Logger.log(this@MainActivity, Logger.Level.INFO, "Тема изменена: $key")
+                AppCompatDelegate.setDefaultNightMode(mode)
+
+                // Диалог закроется — это нормальное поведение
+                recreate()
             }
-            switches[key] = sw
-            container.addView(sw)
         }
+
+        // Кнопка по центру: тема уже применилась при переключении ползунка
+        btnDone.setOnClickListener { }
 
         MaterialAlertDialogBuilder(this)
             .setView(container)
-            .setNegativeButton("Готово", null)
             .show()
     }
 
