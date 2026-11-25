@@ -314,7 +314,7 @@ class MainActivity : AppCompatActivity() {
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 8)
+            setPadding(48, 48, 48, 8)
         }
 
         val switches = mutableMapOf<String, MaterialSwitch>()
@@ -354,7 +354,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         MaterialAlertDialogBuilder(this)
-            .setTitle("Тема")
             .setView(container)
             .setNegativeButton("Готово", null)
             .show()
