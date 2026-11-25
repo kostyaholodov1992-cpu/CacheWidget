@@ -313,7 +313,6 @@ class MainActivity : AppCompatActivity() {
         val swDark = container.findViewById<MaterialSwitch>(R.id.sw_dark)
         val swLight = container.findViewById<MaterialSwitch>(R.id.sw_light)
         val swAuto = container.findViewById<MaterialSwitch>(R.id.sw_auto)
-        val btnDone = container.findViewById<Button>(R.id.btn_done)
 
         // Начальные состояния ползунков
         swDark.isChecked = current == THEME_DARK
@@ -351,9 +350,6 @@ class MainActivity : AppCompatActivity() {
                 recreate()
             }
         }
-
-        // Кнопка по центру: тема уже применилась при переключении ползунка
-        btnDone.setOnClickListener { }
 
         MaterialAlertDialogBuilder(this)
             .setView(container)
