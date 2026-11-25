@@ -50,8 +50,7 @@ object Logger {
             val text = if (file.exists()) file.readText() else "Журнал пуст"
 
             android.app.AlertDialog.Builder(context)
-                .setTitle("Журнал работы")
-                .setMessage(text.takeLast(6000))
+                .setMessage("\n" + text.takeLast(6000))
                 .setPositiveButton("Поделиться") { _, _ -> share(context, text) }
                 .setNeutralButton("Очистить") { _, _ ->
                     try {
